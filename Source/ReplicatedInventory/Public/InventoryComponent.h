@@ -8,14 +8,13 @@
 #include "InventoryDataTypes.h"
 #include "InventoryComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGeneralInventoryChange);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySizeChange, int, delta);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBroadcastInventory, UInventoryComponent*, inventory);
-
-class AInventorySlot;
 class UInventoryItemData;
 class AReplicatedDragHolder;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGeneralInventoryChangeSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySizeChangeSignature, int, delta);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemChangeSignature, int, slot, UItemDataComponent*, newItem, EInventorySlotState, newSlotState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBroadcastInventorySignature, UInventoryComponent*, inventory);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable, BlueprintType )
 class REPLICATEDINVENTORY_API UInventoryComponent : public UActorComponent
@@ -29,29 +28,23 @@ public:
 	UInventoryComponent();
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
-	FOnGeneralInventoryChange OnInventoryChange;
+	FOnGeneralInventoryChangeSignature OnInventoryChange;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
-	FOnBroadcastInventory OnInventoryGenerated;
+	FOnBroadcastInventorySignature OnInventoryGenerated;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
-	FOnInventorySizeChange OnInventorySizeChange;
+	FOnInventorySizeChangeSignature OnInventorySizeChange;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
-	FOnInventorySizeChange OnInventoryWidthChange;
+	FOnInventorySizeChangeSignature OnInventoryWidthChange;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
-	FOnInventorySizeChange OnInventoryItemChange;
+	FOnInventoryItemChangeSignature OnInventorySlotChange;
 
 
 protected:
-	/*
-	* Called when the game starts
-	*/ 
 	virtual void BeginPlay() override;
-	/*
-	* Sets up replicated variables.
-	*/
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 	
 
@@ -64,7 +57,7 @@ public:
 	* Returns all slots that are in the inventory.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	TArray<AInventorySlot*> GetAllSlots() const { return ItemSlots; };
+	TArray<UItemDataComponent*> GetAllItems() const { return ItemSlots; };
 	/*
 	* Returns empty if a slot is out of bounds (Too far right or past length).
 	*/
@@ -86,25 +79,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	int GetInventoryHeight() const { return (InventorySize / InventoryWidth) + ((InventorySize%InventoryWidth > 0) ? 1 : 0); }
 	/*
-	* Returns true if all given slots are empty.
+	* Returns true if all given slots at given indexes are empty.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool SlotsAreEmpty(TArray<class AInventorySlot*> slots) const;
+	bool SlotsAreEmpty(TArray<int> indexes) const;
 	/*
 	* Returns true if all given slots at given indexes are empty.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool SlotsAreEmptyAtIndex(TArray<int> indexes) const;
-	/*
-	* Returns true if all given slots are empty.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool SlotIsEmpty(class AInventorySlot* slot) const;
-	/*
-	* Returns true if all given slots at given indexes are empty.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool SlotIsEmptyAtIndex(int index) const;
+	bool SlotIsEmpty(int index) const;
 	/*
 	* Converts the position from the 2D grid to an index.
 	*/
@@ -163,6 +146,11 @@ public:
 
 private:
 	/*
+	 * Sets the item at the given index. More than just assigning needs to be done.
+	 */
+	UFUNCTION()
+	bool SetItem(int index, UItemDataComponent* item);
+	/*
 	* Utility function for internal use. This behaves similarly to AActor's HasAuthority() function. 
 	*/
 	UFUNCTION()
@@ -211,9 +199,28 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ReturnItemFromHolder_Server(AReplicatedDragHolder* holder);
 	/*
+	 * Checks if a given index is within boundries.
+	 */
+	UFUNCTION()
+	bool IsValidIndex(int index) const { return (index > 0) || (index < InventorySize); }
+
+	UFUNCTION(NetMulticast, Reliable)
+	void UpdatedIndex_Multi(int index, EInventorySlotState newSlotState);
+
+	UFUNCTION()
+	void OnRep_ItemSlots(TArray<UItemDataComponent*> oldItemSlots);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void ReplicateTakenSlotChange_Multi(int index, bool taken);
+
+	UFUNCTION(Server, Reliable)
+	void UpdateTakenSlotChange_Server(int index, bool taken);
+
+
+	/*
 	* The slots of the items stored in this inventory.
 	*/
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, ReplicatedUsing="OnRep_ItemSlots")
 	TArray<TObjectPtr<UItemDataComponent>> ItemSlots;
 	/*
 	* How many slots can fit into this inventory.

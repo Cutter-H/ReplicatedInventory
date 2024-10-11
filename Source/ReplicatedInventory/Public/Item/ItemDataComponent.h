@@ -47,7 +47,7 @@ public:
 	FText GetGridDisplayText() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	FName GetName() const {	return Name; }
+	FName GetItemName() const {	return Name; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	FName GetDescription() const { return Description; }
@@ -68,7 +68,7 @@ public:
 	int GetQuantityMaxAddend() const { return FMath::Clamp(MaxQuantity - Quantity, 0, MaxQuantity); }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	bool MatchesItem(FName otherItemName) const { return otherItemName == GetName(); }
+	bool MatchesItem(FName otherItemName) const { return otherItemName == GetItemName(); }
 
 
 	UFUNCTION()

@@ -2,6 +2,7 @@
 
 
 #include "Item/InventorySlot.h"
+/*/
 #include "Item/ItemDataComponent.h"
 
 #include "InventoryInterface.h"
@@ -9,6 +10,7 @@
 
 #include "UI/ReplicatedDragHolder.h"
 #include "Net/UnrealNetwork.h"
+
 
 AInventorySlot::AInventorySlot() {
 	bReplicates = true;
@@ -78,7 +80,7 @@ bool AInventorySlot::SetItemInfo(AActor* item)
 		else {
 			UpdateItem_Server(item, dataComp);
 		}
-		/**/
+		
 	}
 	else{
 		TArray<AInventorySlot*> slots = Inventory->GetSlots(InventoryIndex, dataComp->GetSize(), true);
@@ -102,8 +104,8 @@ bool AInventorySlot::SetItemInfo(AActor* item)
 	}
 	return true;
 }
-FName AInventorySlot::GetName() const {
-	return IsValid(ItemDataComp) ? ItemDataComp->GetName() : bSlotTaken ? FName("Taken") : FName("Empty");
+FName AInventorySlot::GetItemName() const {
+	return IsValid(ItemDataComp) ? ItemDataComp->GetItemName() : bSlotTaken ? FName("Taken") : FName("Empty");
 }
 AActor* AInventorySlot::GetItem() const {
 	return ItemDataComp->GetOwner();
@@ -191,7 +193,7 @@ void AInventorySlot::OnInventoryWidthChange(int increaseAmount)
 bool AInventorySlot::MatchesItem(AActor* otherItem) const {
 	if (IsValid(otherItem) && IsValid(ItemDataComp)) {
 		if (UItemDataComponent* otherComp = otherItem->GetComponentByClass<UItemDataComponent>()) {
-			if (otherComp->GetName() ==ItemDataComp->GetName()) {
+			if (otherComp->GetItemName() ==ItemDataComp->GetItemName()) {
 				return true;
 			}
 		}
@@ -277,3 +279,4 @@ void AInventorySlot::OnItemSelfDestroy(AActor* destroyedActor) {
 	SetItemInfo(NULL);
 }
 	
+	*/

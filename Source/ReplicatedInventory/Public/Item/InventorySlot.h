@@ -7,8 +7,8 @@
 #include "InventoryDataTypes.h"
 #include "InventorySlot.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnItemUpdatedSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemQuantityChangeSignature, int, oldQuantity, int, newQuantity);
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnItemUpdatedSignature);
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemQuantityChangeSignature, int, oldQuantity, int, newQuantity);
 
 class UInventoryComponent;
 class IInventoryInterface;
@@ -23,6 +23,7 @@ class REPLICATEDINVENTORY_API AInventorySlot : public AInfo
 	GENERATED_BODY()
 
 public:
+	/*/
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory|Slot")
 	FOnItemUpdatedSignature OnSlotUpdated;
 
@@ -49,7 +50,7 @@ public:
 	bool SetItemInfo(AActor* item);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
-	FName GetName() const;
+	FName GetItemName() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
 	UItemDataComponent* GetItemInfo() const { return ItemDataComp; }
@@ -77,6 +78,7 @@ public:
 	/*
 	* Detects if the item in this slot is the same as the given item.
 	*/
+	/*/
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	bool MatchesItem(AActor* otherItem) const;
 
@@ -125,5 +127,5 @@ private:
 	TArray<FItemComponentProfile> ItemProfile;
 	UPROPERTY(Replicated)
 	TObjectPtr<UItemDataComponent> ItemDataComp;
-
+	*/
 };

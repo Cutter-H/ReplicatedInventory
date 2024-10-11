@@ -47,7 +47,7 @@ void UInventoryWidget::GenerateGrid()
 	if (!IsValid(InventoryComponent) || !GridPanel_Inventory) return;
 	UpdateGridSize();
 	GridPanel_Inventory->ClearChildren();
-	TArray<AInventorySlot*>slots = InventoryComponent->GetAllSlots();
+	TArray<AInventorySlot*>slots = InventoryComponent->GetAllItems();
 	for (AInventorySlot* s : slots)
 	{
 		if (s)
