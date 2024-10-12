@@ -9,24 +9,23 @@
 #include "Net/UnrealNetwork.h"
 
 UInventoryComponent::UInventoryComponent() {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 }
 void UInventoryComponent::BeginPlay() {
 	
 	Super::BeginPlay();
 	if (HasAuthority()) {
+		// Resize item slot array.
 		ItemSlots.SetNum(InventorySize, false);
+
 		OnInventoryGenerated.Broadcast(this);
 		ReplicateFinishedGeneratingInventory_Multi();
-
 		FActorSpawnParameters spawnParams;
 		spawnParams.Owner = GetOwner();
 		NewDragHolder = GetWorld()->SpawnActor<AReplicatedDragHolder>(AReplicatedDragHolder::StaticClass(), spawnParams);
 		NewDragHolder->OriginalInventory = this;
-	}
-	else {
-		RequestFinishGeneratingInventory_Server();
+		ReplicateFinishedGeneratingInventory_Multi();
 	}
 	
 }
@@ -258,7 +257,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 				// Check if existing slots hasn't already exhausted leftToAdd, we already have enough available slots to exhaust the quantity, the current slot hasn't been used by a previous available one, and that the current slot can fit the item.
 				currentSlots = GetSlots(i, newItemSize, true);
 				bool slotIsAvailable = SlotsAreEmpty(currentSlots);				
-				if ((amountToAdd >= (availableSlots.Num() * itemMaxQuantity)) && !blacklistedSlots.Contains(s) && slotIsAvailable) {
+				if ((amountToAdd >= (availableSlots.Num() * itemMaxQuantity)) && !blacklistedSlots.Contains(i) && slotIsAvailable) {
 					availableSlots.Add(i);
 					blacklistedSlots.Append(currentSlots);
 				}
@@ -464,7 +463,7 @@ void UInventoryComponent::ReplicateFinishedGeneratingInventory_Multi_Implementat
 	OnFinishGeneratingInventory(this);
 }
 void UInventoryComponent::RequestFinishGeneratingInventory_Server_Implementation() {
-	GetWorld()->GetTimerManager().SetTimerForNextTick<UInventoryComponent>(this, &UInventoryComponent::ReplicateFinishedGeneratingInventory_Multi);
+
 }
 void UInventoryComponent::GenerateItemHolder_Server_Implementation(UItemDataComponent* holdItem, int holdItemIndex) {
 	if (!HasAuthority()) return;

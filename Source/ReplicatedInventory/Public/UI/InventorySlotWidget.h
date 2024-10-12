@@ -7,6 +7,9 @@
 #include "UI/InventoryItemWidget.h"
 #include "InventorySlotWidget.generated.h"
 
+class UInventoryComponent;
+class UGridSlot;
+
 /**
  * 
  */
@@ -30,10 +33,10 @@ public:
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
-	void SetInventorySlot(class AInventorySlot* newInventorySlot);
+	void SetInventorySlotIndex(int newInventorySlot);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
-	void SetGridSlot(class UGridSlot* gridPanelSlot, FVector2D slotSize);
+	void SetGridSlot(UGridSlot* gridPanelSlot, FVector2D slotSize);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
 	void UpdateItemInfo();
@@ -41,8 +44,15 @@ public:
 	UFUNCTION()
 	void SetInteractInputs(FKey newRotate, FKey newDragMouseButton);
 
+	UFUNCTION()
+	UItemDataComponent* GetItem() const;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Slot")
-	TObjectPtr<class AInventorySlot> InventorySlot;
+	int InventorySlotIndex;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Slot")
+	TObjectPtr<UInventoryComponent> Inventory;
+
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Slot")
 	TObjectPtr<class UGridSlot> GridPanelSlot;

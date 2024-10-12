@@ -47,14 +47,14 @@ void UInventoryItemDragDrop::RecheckAvailability()
 		SetSlotAvailable(false);
 		return;
 	}
-	if (UInventoryComponent* inventory = OverSlot->InventorySlot->GetInventory())
+	if (UInventoryComponent* inventory = OverSlot->Inventory)
 	{
 		if(UInventoryItemWidget* dragWidget = Cast<UInventoryItemWidget>(DefaultDragVisual))
 		{
 			if (UItemDataComponent* item = dragWidget->ItemDataAsset)
 			{
 
-				TArray<AInventorySlot*> slots = inventory->GetSlots(OverSlot->InventorySlot->GetIndex(), item->GetSize(), true);
+				TArray<int> slots = inventory->GetSlots(OverSlot->InventorySlotIndex, item->GetSize(), true);
 				bool bCanFit = inventory->SlotsAreEmpty(slots);
 
 				SetSlotAvailable(!bCanFit);

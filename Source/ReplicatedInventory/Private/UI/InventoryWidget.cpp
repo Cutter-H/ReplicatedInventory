@@ -47,39 +47,35 @@ void UInventoryWidget::GenerateGrid()
 	if (!IsValid(InventoryComponent) || !GridPanel_Inventory) return;
 	UpdateGridSize();
 	GridPanel_Inventory->ClearChildren();
-	TArray<AInventorySlot*>slots = InventoryComponent->GetAllItems();
-	for (AInventorySlot* s : slots)
-	{
-		if (s)
-		{
-			TSubclassOf<UInventorySlotWidget> slotClass = UInventorySlotWidget::StaticClass();
-			if (SlotWidgetClassOverride)
-				slotClass = SlotWidgetClassOverride;
+	TArray<UItemDataComponent*>items= InventoryComponent->GetAllItems();
+	for (int index = 0; index < items.Num(); index++) {
 
-			UInventorySlotWidget* slot = WidgetTree->ConstructWidget<UInventorySlotWidget>(slotClass);
+		TSubclassOf<UInventorySlotWidget> slotClass = UInventorySlotWidget::StaticClass();
+		if (SlotWidgetClassOverride)
+			slotClass = SlotWidgetClassOverride;
 
-			slot->SetInventorySlot(s);
-			slot->SetInteractInputs(RotateInventoryItemKey, DragInventoryItemMouseButton);
+		UInventorySlotWidget* slot = WidgetTree->ConstructWidget<UInventorySlotWidget>(slotClass);
 
-			FItemGridSize size = FItemGridSize(1);
-			if (IsValid(s->GetItemInfo())) {
-				size = s->GetItemInfo()->GetSize();
+		slot->SetInventorySlotIndex(index);
+		slot->SetInteractInputs(RotateInventoryItemKey, DragInventoryItemMouseButton);
 
-			}
-			FInventory2DIndex gridIndex = InventoryComponent->IndexIntTo2D(s->GetIndex());
-
-			if (UGridSlot* gridSlot = GridPanel_Inventory->AddChildToGrid(slot, gridIndex.Y, gridIndex.X))
-			{
-				FVector2D slotSize = Size;
-				if (SizeDistribution == EInventorySizeDistribution::SizeByGrid)
-				{
-					slotSize.X = slotSize.X / InventoryComponent->GetInventoryWidth();
-					slotSize.Y = slotSize.Y / InventoryComponent->GetInventoryHeight();
-				}
-				slot->SetGridSlot(gridSlot, slotSize);
-				gridSlot->SetPadding(0.f);
-			}
+		FItemGridSize size = FItemGridSize(1);
+		if (UItemDataComponent * itemData = items[index]) {
+			size = itemData->GetSize();
 		}
+		FInventory2DIndex gridIndex = InventoryComponent->IndexIntTo2D(index);
+
+		if (UGridSlot* gridSlot = GridPanel_Inventory->AddChildToGrid(slot, gridIndex.Y, gridIndex.X)) {
+			FVector2D slotSize = Size;
+			if (SizeDistribution == EInventorySizeDistribution::SizeByGrid)
+			{
+				slotSize.X = slotSize.X / InventoryComponent->GetInventoryWidth();
+				slotSize.Y = slotSize.Y / InventoryComponent->GetInventoryHeight();
+			}
+			slot->SetGridSlot(gridSlot, slotSize);
+			gridSlot->SetPadding(0.f);
+		}
+		
 	}
 }
 

@@ -35,8 +35,8 @@ void UInventorySlotWidget::NativePreConstruct()
 
 			if (ItemWidget)
 			{
-				if(InventorySlot && InventorySlot->GetItemInfo())
-					ItemWidget->SetItemInfo(InventorySlot->GetItemInfo());
+				if(UItemDataComponent* itemData = GetItem())
+					ItemWidget->SetItemInfo(itemData);
 				ItemWidget->SetSize(SlotSize);
 
 				if (UButtonSlot* itemWidgetAsSlot = Cast<UButtonSlot>(Button_SlotButton->AddChild(ItemWidget)))
@@ -57,7 +57,7 @@ void UInventorySlotWidget::NativeConstruct()
 	if (!Button_SlotButton) {
 		return;
 	}
-	Button_SlotButton->SetIsEnabled(IsValid(InventorySlot->GetItemInfo()));
+	Button_SlotButton->SetIsEnabled(IsValid(GetItem()));
 
 	Button_SlotButton->OnPressed.AddDynamic(ItemWidget, &UInventoryItemWidget::OnSlotButtonPressed);
 	Button_SlotButton->OnHovered.AddDynamic(ItemWidget, &UInventoryItemWidget::OnSlotButtonHovered);
@@ -70,11 +70,12 @@ void UInventorySlotWidget::NativeConstruct()
 void UInventorySlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
-	if (GetOwningPlayer()->IsInputKeyDown(DragItemMouseButton) || !IsValid(InventorySlot->GetItemInfo())) {
+	UItemDataComponent* itemData = GetItem();
+	if (GetOwningPlayer()->IsInputKeyDown(DragItemMouseButton) || !IsValid(itemData)) {
 		return;
 	}
 	FOnInputAction inputAction;
-	inputAction.BindUFunction(InventorySlot, FName("RotateItem"));
+	inputAction.BindUFunction(itemData, FName("RotateItem"));
 	ListenForInputAction(FName(RotateItemKey.GetDisplayName(false).ToString()), EInputEvent::IE_Pressed, false, inputAction);
 	SetFocus();
 }
@@ -89,15 +90,15 @@ void UInventorySlotWidget::NativeOnDragEnter(const FGeometry& InGeometry, const 
 	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
 	if (UInventoryItemDragDrop* itemDragDrop = Cast<UInventoryItemDragDrop>(InOperation))
 	{
-		if (UInventoryComponent* inventory = InventorySlot->GetInventory())
+		if (IsValid(Inventory))
 		{
 			if(AReplicatedDragHolder* holder = Cast<AReplicatedDragHolder>(itemDragDrop->Payload))
 			{
 				if(UItemDataComponent* item = holder->CheckItem())
 				{
 
-					TArray<AInventorySlot*> slots = inventory->GetSlots(InventorySlot->GetIndex(), item->GetSize(), true);
-					bool bCanFit= inventory->SlotsAreEmpty(slots);
+					TArray<int> slots = Inventory->GetSlots(InventorySlotIndex, item->GetSize(), true);
+					bool bCanFit= Inventory->SlotsAreEmpty(slots);
 					itemDragDrop->OverSlot = this;
 					itemDragDrop->SetSlotAvailable(bCanFit);
 					return;
@@ -219,7 +220,7 @@ FReply UInventorySlotWidget::NativeOnKeyDown(const FGeometry& InGeometry, const 
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
-void UInventorySlotWidget::SetInventorySlot(AInventorySlot* newInventorySlot)
+void UInventorySlotWidget::SetInventorySlotIndex(AInventorySlot* newInventorySlot)
 {
 	if (!newInventorySlot) return;
 	InventorySlot = newInventorySlot;
@@ -296,4 +297,11 @@ void UInventorySlotWidget::SetInteractInputs(FKey newRotate, FKey newDragMouseBu
 {
 	RotateItemKey = newRotate;
 	DragItemMouseButton = newDragMouseButton;
+}
+
+UItemDataComponent* UInventorySlotWidget::GetItem() const {
+	if (!IsValid(Inventory)) {
+		return nullptr;
+	}
+	return Inventory->GetItem(InventorySlotIndex);
 }

@@ -144,6 +144,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void ReturnItemFromHolder(class AReplicatedDragHolder* holder);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
+	UItemDataComponent* GetItem(int index) const { return ItemSlots.IsValidIndex(index) ? ItemSlots[index] : NULL; }
+
 private:
 	/*
 	 * Sets the item at the given index. More than just assigning needs to be done.
