@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Item/InventoryItemBase.h"
 #include "InventoryDataTypes.h"
 #include "InventoryComponent.generated.h"
 
@@ -13,7 +12,7 @@ class AReplicatedDragHolder;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGeneralInventoryChangeSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySizeChangeSignature, int, delta);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemChangeSignature, int, slot, UItemDataComponent*, newItem, EInventorySlotState, newSlotState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotChangeSignature, int, slot, UItemDataComponent*, newItem, EInventorySlotState, newSlotState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBroadcastInventorySignature, UInventoryComponent*, inventory);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable, BlueprintType )
@@ -40,7 +39,7 @@ public:
 	FOnInventorySizeChangeSignature OnInventoryWidthChange;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
-	FOnInventoryItemChangeSignature OnInventorySlotChange;
+	FOnInventorySlotChangeSignature OnInventorySlotChange;
 
 
 protected:

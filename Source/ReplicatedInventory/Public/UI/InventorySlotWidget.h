@@ -4,11 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "UI/InventoryItemWidget.h"
+#include "InventoryDataTypes.h"
 #include "InventorySlotWidget.generated.h"
 
 class UInventoryComponent;
 class UGridSlot;
+class USizeBox;
+class UButton;
+class UInventoryItemWidget;
+class UInventoryWidget;
 
 /**
  * 
@@ -23,15 +27,15 @@ public:
 
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent);
 
 	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent);
-
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	void SetInventorySlotIndex(int newInventorySlot);
 
@@ -39,7 +43,7 @@ public:
 	void SetGridSlot(UGridSlot* gridPanelSlot, FVector2D slotSize);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
-	void UpdateItemInfo();
+	void UpdateItemSlotInfo(int slotNum, UItemDataComponent* newItem, EInventorySlotState newSlotState);
 
 	UFUNCTION()
 	void SetInteractInputs(FKey newRotate, FKey newDragMouseButton);
@@ -55,19 +59,21 @@ public:
 
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Slot")
-	TObjectPtr<class UGridSlot> GridPanelSlot;
+	TObjectPtr<UGridSlot> GridPanelSlot;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Inventory|Slot")
 	FVector2D SlotSize;	
 
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Slot", meta = (BindWidget))
-	TObjectPtr<class USizeBox> SizeBox_Root;
+	TObjectPtr<USizeBox> SizeBox_Root;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Slot", meta = (BindWidget))
-	TObjectPtr<class UButton> Button_SlotButton;
+	TObjectPtr<UButton> Button_SlotButton;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Item", meta = (BindWidget))
-	TObjectPtr<UInventoryItemWidget> ItemWidget;
+	TObjectPtr<UInventoryItemWidget> Widget_Item;
+
+	TObjectPtr<UInventoryWidget> Widget_Inventory;
 
 	FKey RotateItemKey;
 

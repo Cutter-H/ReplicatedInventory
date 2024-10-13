@@ -7,7 +7,6 @@
 
 #include "InventoryComponent.h"
 #include "Item/ItemDataComponent.h"
-#include "Item/InventorySlot.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/SizeBox.h"
@@ -75,7 +74,6 @@ void UInventoryWidget::GenerateGrid()
 			slot->SetGridSlot(gridSlot, slotSize);
 			gridSlot->SetPadding(0.f);
 		}
-		
 	}
 }
 

@@ -63,7 +63,7 @@ void AReplicatedDragHolder::HoldItem(UItemDataComponent* item, int index)
 		EnableInput(OwningPlayer);
 	}
 	if (HasAuthority())
-		UpdateItemInfo(item, index);
+		UpdateItemSlotInfo(item, index);
 	else
 		HoldItem_Server(item, index);
 }
@@ -85,7 +85,7 @@ void AReplicatedDragHolder::ReturnItem()
 			OriginalInventory->AddItemToInventory(HoldingItem->GetOwner());
 		}
 
-		UpdateItemInfo(nullptr, -1);
+		UpdateItemSlotInfo(nullptr, -1);
 		Cleanup();//GetWorld()->GetTimerManager().SetTimerForNextTick(this, &AReplicatedDragHolder::Cleanup);
 	}
 	else
@@ -99,7 +99,7 @@ UItemDataComponent* AReplicatedDragHolder::RetrieveItem(bool bDestroyHolderOnRet
 	{
 		if (HasAuthority())
 		{
-			UpdateItemInfo(nullptr, -1);
+			UpdateItemSlotInfo(nullptr, -1);
 			Cleanup();//GetWorld()->GetTimerManager().SetTimerForNextTick(this, &AReplicatedDragHolder::Cleanup);
 		}
 		else
@@ -120,7 +120,7 @@ void AReplicatedDragHolder::BoundedReturnItemToInventory(UDragDropOperation* InO
 	OriginalInventory->ReturnItemFromHolder(this);
 }
 
-void AReplicatedDragHolder::UpdateItemInfo(UItemDataComponent* itemData, int index)
+void AReplicatedDragHolder::UpdateItemSlotInfo(UItemDataComponent* itemData, int index)
 {
 	HoldingItem = itemData;
 	OriginalIndex = index;

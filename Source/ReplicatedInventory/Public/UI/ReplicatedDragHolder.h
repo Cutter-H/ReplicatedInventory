@@ -67,7 +67,7 @@ private:
 	TObjectPtr<UItemDataComponent> HoldingItem = nullptr;
 
 	UFUNCTION()
-	void UpdateItemInfo(UItemDataComponent* itemData, int index);
+	void UpdateItemSlotInfo(UItemDataComponent* itemData, int index);
 
 	UFUNCTION(Server, Reliable, Category = "Inventory|Item")
 	void HoldItem_Server(UItemDataComponent* itemData, int index);

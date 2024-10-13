@@ -2,7 +2,6 @@
 
 
 #include "InventoryComponent.h"
-#include "Item/InventorySlot.h"
 #include "Item/ItemDataComponent.h"
 #include "Item/InventoryItemData.h"
 #include "UI/ReplicatedDragHolder.h"
@@ -372,6 +371,7 @@ bool UInventoryComponent::SetItem(int index, UItemDataComponent* item) {
 
 		return true;
 	}
+	return false;
 }
 bool UInventoryComponent::HasAuthority() const {
 	return (IsValid(GetOwner()) && GetOwner()->HasAuthority());
@@ -412,6 +412,9 @@ AActor* UInventoryComponent::GenerateItemWithData(UInventoryItemData* itemData, 
 	newItem->Destroy();
 	return NULL;
 }
+void UInventoryComponent::UpdatedIndex_Multi_Implementation(int index, EInventorySlotState newSlotState) {
+	OnInventorySlotChange.Broadcast(index, GetItem(index), newSlotState);
+}
 void UInventoryComponent::OnRep_ItemSlots(TArray<UItemDataComponent*> oldItemSlots) {
 	int max = ItemSlots.Num();
 	int modifiedIndex = -1;
@@ -443,10 +446,10 @@ void UInventoryComponent::OnRep_ItemSlots(TArray<UItemDataComponent*> oldItemSlo
 
 	OnInventorySlotChange.Broadcast(modifiedIndex, ItemSlots[modifiedIndex], state);
 }
-void UInventoryComponent::ReplicateTakenSlotChange_Multi(int index, bool taken) {
+void UInventoryComponent::ReplicateTakenSlotChange_Multi_Implementation(int index, bool taken) {
 	OnInventorySlotChange.Broadcast(index, nullptr, taken ? EInventorySlotState::Taken : EInventorySlotState::Empty);
 }
-void UInventoryComponent::UpdateTakenSlotChange_Server(int index, bool taken) {
+void UInventoryComponent::UpdateTakenSlotChange_Server_Implementation(int index, bool taken) {
 	if (taken) {
 		TakenSlots.Add(index);
 	}

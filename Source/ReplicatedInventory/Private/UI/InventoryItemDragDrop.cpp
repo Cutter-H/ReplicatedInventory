@@ -5,9 +5,8 @@
 #include "UI/InventoryItemWidget.h"
 #include "UI/ReplicatedDragHolder.h"
 #include "UI/InventorySlotWidget.h"
-#include "InventoryComponent.h"
 
-#include "Item/InventorySlot.h"
+#include "InventoryComponent.h"
 #include "Item/ItemDataComponent.h"
 
 

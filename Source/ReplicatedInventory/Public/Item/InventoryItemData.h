@@ -48,7 +48,7 @@ public:
 	TObjectPtr<UMaterialInterface> Image;
 	/* 
 	 * A reference to the actor normally used to physically portray this item. If an actor needs to be spawned (such as at a vendor) it will check this.
-	 * (Does not NEED to be set.)
+	 * (NEEDS to be set.)
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	TSubclassOf<AActor> ItemClass;
