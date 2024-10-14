@@ -9,7 +9,7 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FQuantityChangeSignature, int, oldQuantity, int, newQuantity);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FQuantityGeneric);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FItemGenericSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSizeFlippedSignature, FItemGridSize, oldSize, FItemGridSize, newSize);
 
 class UInventoryItemData;
@@ -20,17 +20,20 @@ class REPLICATEDINVENTORY_API UItemDataComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Item")
 	FQuantityChangeSignature OnQuantityChange;
 
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FQuantityGeneric OnQuantityDeplete;
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Item")
+	FItemGenericSignature OnQuantityDeplete;
 
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FQuantityGeneric OnQuantityFill;
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Item")
+	FItemGenericSignature OnQuantityFill;
 
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Item")
 	FSizeFlippedSignature OnSizeFlipped;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Item")
+	FItemGenericSignature OnGridTextChange;
 
 	UItemDataComponent();
 

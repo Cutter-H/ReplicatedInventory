@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+#include "ReplicatedInventory.h"
 #include "InventoryComponent.h"
 #include "Item/ItemDataComponent.h"
 #include "Item/InventoryItemData.h"
@@ -44,8 +44,14 @@ void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 }
 TArray<int> UInventoryComponent::GetSlots(int index, FItemGridSize size, bool bIncludeOrigin) const {
 	TArray<int> retVal;
-	if (size.Width <= 0 || size.Height <= 0) return retVal;
-	if (size.Width == 1 && size.Height == 1 && !bIncludeOrigin) return retVal;
+	if (size.Width <= 0 || size.Height <= 0) {
+		UE_LOG(LogInventory, Warning, TEXT("Attempted to get slots with an invalid size."))
+		return retVal;
+	}
+	if (size.Width == 1 && size.Height == 1 && !bIncludeOrigin) {
+		UE_LOG(LogInventory, Warning, TEXT("Attempted to get slots with a size of 1 while excluding origin."))
+		return retVal;
+	}
 
 	int column = index % InventoryWidth;
 	int lastSlot = index + (size.Width - 1) + ((size.Height - 1) * InventoryWidth);
@@ -186,12 +192,22 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item, FItemDataAmount& modifiedItemData, int desiredIndex)
 {
 	modifiedItemData = item;
-	if (!IsValid(item.DataAsset) || item.Quantity == 0) return -1;
-	if (desiredIndex > InventorySize) return -1;
-
-	AActor* defaultObj = item.DataAsset->ItemClass->GetDefaultObject<AActor>();
-	if (!defaultObj) {
-		UE_LOG(LogTemp, Warning, TEXT("The data asset %s does not have an Item Class assigned. It was not added to the inventory."), 
+	if (!IsValid(item.DataAsset)) {
+		UE_LOG(LogInventory, Warning, TEXT("The item you attempted to add does not have a valid Data Asset."));
+		return -1;
+	}
+	if (item.Quantity <= 0) {
+		UE_LOG(LogInventory, Warning, TEXT("The item you attempted to add 0 or less quantity."));
+	}
+	if (desiredIndex > InventorySize) {
+		UE_LOG(LogInventory, Warning, TEXT("The index you attempted to add to is greater than the inventory's size."));
+	}
+	AActor* defaultObj;
+	if (IsValid(item.DataAsset->ItemClass)) {
+		defaultObj = item.DataAsset->ItemClass->GetDefaultObject<AActor>();
+	} 
+	else {
+		UE_LOG(LogInventory, Warning, TEXT("The data asset %s does not have an Item Class assigned. It was not added to the inventory."), 
 			*GetNameSafe(item.DataAsset));
 		return -1;
 	}
@@ -205,6 +221,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 	// Adding to specific slot
 	if (desiredIndex >= 0) {
 		if (TakenSlots.Contains(desiredIndex)) {
+			UE_LOG(LogInventory, Warning, TEXT("The index you attempted to add the item to is a taken slot."));
 			return -1;
 		}
 		if (IsValid(ItemSlots[desiredIndex])) {
@@ -239,28 +256,38 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 		}
 	}
 	else { // No specific slot identified. Add until exhausted.
-		// Pretty intensive, aint it?
 		TArray<int> availableSlots;
 		TArray<int> blacklistedSlots;
 		TArray<int> existingSlots;
 		TArray<int> currentSlots;
-		for (int i = 0; i < ItemSlots.Num(); i++) {
+		for (int i = 0; i < InventorySize; i++) {
 			UItemDataComponent* s = ItemSlots[i];
-			if (amountToAdd > 0) {
-				if (IsValid(s) && s->MatchesItem(item.DataAsset->Name)) {
-					if (s->GetQuantityMaxAddend() > 0) {
-						existingSlots.Add(i);
-						amountToAdd -= s->GetQuantityMaxAddend();
+			if (!blacklistedSlots.Contains(i)) {
+				if (amountToAdd > 0) {
+					if (IsValid(s) && s->MatchesItem(item.DataAsset->Name)) {
+						if (s->GetQuantityMaxAddend() > 0) {
+							existingSlots.Add(i);
+							amountToAdd -= s->GetQuantityMaxAddend();
+						}
+					}
+					else {
+						if (!IsValid(s)) {
+							if (!newItemSize.IsSingle()) {
+								currentSlots = GetSlots(i, newItemSize, false);
+								bool slotIsAvailable = SlotsAreEmpty(currentSlots);
+								if (slotIsAvailable) {
+									availableSlots.Add(i);
+									blacklistedSlots.Append(currentSlots);
+								}
+							}
+							else {
+								availableSlots.Add(i);
+							}
+						}
 					}
 				}
-				// Check if existing slots hasn't already exhausted leftToAdd, we already have enough available slots to exhaust the quantity, the current slot hasn't been used by a previous available one, and that the current slot can fit the item.
-				currentSlots = GetSlots(i, newItemSize, true);
-				bool slotIsAvailable = SlotsAreEmpty(currentSlots);				
-				if ((amountToAdd >= (availableSlots.Num() * itemMaxQuantity)) && !blacklistedSlots.Contains(i) && slotIsAvailable) {
-					availableSlots.Add(i);
-					blacklistedSlots.Append(currentSlots);
-				}
 			}
+			
 		}
 		if (amountToAdd <= (availableSlots.Num() * itemMaxQuantity)) {
 			amountToAdd = item.Quantity;
@@ -293,6 +320,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 			}
 		}
 	}
+	UE_LOG(LogInventory, Warning, TEXT("The item could not be added to the inventory."));
 	return -1;
 }/**/
 void UInventoryComponent::DestroyItem(int index) {
@@ -350,28 +378,29 @@ void UInventoryComponent::ReturnItemFromHolder(AReplicatedDragHolder* holder) {
 	else
 		ReturnItemFromHolder_Server(holder);
 }
-bool UInventoryComponent::SetItem(int index, UItemDataComponent* item) {
+void UInventoryComponent::SetItem_Implementation(int index, UItemDataComponent* item) {
 	if (!HasAuthority() || !IsValidIndex(index)) {
-		return false;
+		return;
 	}
 	if (IsValid(item)) {
 		FItemGridSize size = item->GetSize();
 		if (!size.IsSingle()) {
 			TArray<int> itemSlots = GetSlots(index, size);
 			if (itemSlots.Num() <= 0) {
-				return false;
+				return;
 			}
 			for (int i : itemSlots) {
 				TakenSlots.Add(i);
 				ReplicateTakenSlotChange_Multi(i, true);
 			}
 		}
+		
 		item->GetOwner()->SetOwner(GetOwner());
 		ItemSlots[index] = item;
-
-		return true;
+		OnInventorySlotChange.Broadcast(index, item, IsValid(item) ? EInventorySlotState::Used : EInventorySlotState::Empty);
+		return;
 	}
-	return false;
+	return;
 }
 bool UInventoryComponent::HasAuthority() const {
 	return (IsValid(GetOwner()) && GetOwner()->HasAuthority());

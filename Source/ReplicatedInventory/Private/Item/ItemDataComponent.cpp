@@ -122,5 +122,6 @@ void UItemDataComponent::BroadcastQuantityUpdate_Implementation(int oldQuantity,
 	if (newQuantity == MaxQuantity) {
 		OnQuantityFill.Broadcast();
 	}
+	OnGridTextChange.Broadcast();
 }
 

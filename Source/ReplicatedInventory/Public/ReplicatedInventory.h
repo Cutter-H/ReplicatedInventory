@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+REPLICATEDINVENTORY_API DECLARE_LOG_CATEGORY_EXTERN(LogInventory, Log, All);
+
 class FReplicatedInventoryModule : public IModuleInterface
 {
 public:

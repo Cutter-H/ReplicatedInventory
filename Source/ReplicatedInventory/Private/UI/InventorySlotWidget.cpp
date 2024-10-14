@@ -21,37 +21,11 @@
 void UInventorySlotWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	if (SizeBox_Root)
-	{
-		if (Button_SlotButton)
-		{
-			if (USizeBoxSlot* buttonAsSlot = Cast<USizeBoxSlot>(SizeBox_Root->AddChild(Button_SlotButton)))
-			{
-				buttonAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
-				buttonAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-				buttonAsSlot->SetPadding(0.f);
-			}
-
-			if (Widget_Item)
-			{
-				if(UItemDataComponent* itemData = GetItem())
-					Widget_Item->SetItemInfo(itemData);
-				Widget_Item->SetSize(SlotSize);
-
-				if (UButtonSlot* itemWidgetAsSlot = Cast<UButtonSlot>(Button_SlotButton->AddChild(Widget_Item)))
-				{
-					itemWidgetAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
-					itemWidgetAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-					itemWidgetAsSlot->SetPadding(0.f);
-				}
-			}
-		}
-	}
 }
 void UInventorySlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
+	// Bindings of Delegates go here
 	if (!Button_SlotButton) {
 		return;
 	}
@@ -61,8 +35,57 @@ void UInventorySlotWidget::NativeConstruct()
 	Button_SlotButton->OnHovered.AddDynamic(Widget_Item, &UInventoryItemWidget::OnSlotButtonHovered);
 	Button_SlotButton->OnUnhovered.AddDynamic(Widget_Item, &UInventoryItemWidget::OnSlotButtonUnhovered);
 
-	bIsFocusable = true;
+	SetIsFocusable(true);
 
+}
+
+bool UInventorySlotWidget::Initialize() {
+	bool retVal = Super::Initialize();
+
+	// Widget Creation
+	/* Size Box */ {
+		if (!IsValid(SizeBox_Root)) {
+			SizeBox_Root = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SizeBox_Root"));
+		}
+		if (IsValid(SizeBox_Root)) {
+			WidgetTree->RootWidget = SizeBox_Root;
+
+			/* Button */ {
+				if (!IsValid(Button_SlotButton)) {
+					Button_SlotButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("Button_SlotButton"));
+				}
+				if (IsValid(Button_SlotButton)) {
+					if (USizeBoxSlot* slot = Cast<USizeBoxSlot>(SizeBox_Root->AddChild(Button_SlotButton))) {
+						slot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+						slot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+
+					}
+
+					/* Item */ {
+						if (!IsValid(Widget_Item)) {
+							Widget_Item = WidgetTree->ConstructWidget<UInventoryItemWidget>(UInventoryItemWidget::StaticClass(), TEXT("Widget_Item"));
+						}
+						if (IsValid(Widget_Item)) {
+							if (UButtonSlot* itemWidgetAsSlot = Cast<UButtonSlot>(Button_SlotButton->AddChild(Widget_Item))) {
+								itemWidgetAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+								itemWidgetAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+								itemWidgetAsSlot->SetPadding(0.f);
+							}
+							if (!IsDesignTime()) {
+								if (IsValid(Inventory)) {
+									if (UItemDataComponent* itemData = GetItem())
+										Widget_Item->SetItemInfo(itemData);
+									Widget_Item->SetSize(SlotSize);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return retVal;
 }
 
 void UInventorySlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -202,15 +225,16 @@ bool UInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	return NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 }
 
-void UInventorySlotWidget::SetInventorySlotIndex(int newInventorySlot)
+void UInventorySlotWidget::SetInventorySlotIndex(UInventoryComponent* newInventory, int newInventorySlot)
 {
-	if (!newInventorySlot) return;
-	InventorySlotIndex = newInventorySlot;
-	if(Inventory){ 
+	if (Inventory = newInventory) {
+		if (newInventorySlot < 0) {
+			return;
+		}
+		InventorySlotIndex = newInventorySlot;
 		Inventory->OnInventorySlotChange.AddDynamic(this, &UInventorySlotWidget::UpdateItemSlotInfo);
+		UpdateItemSlotInfo(newInventorySlot, GetItem(), GetSlotState());
 	}
-
-	UpdateItemSlotInfo(newInventorySlot, GetItem(), EInventorySlotState::Empty);
 }
 void UInventorySlotWidget::SetGridSlot(UGridSlot* gridPanelSlot, FVector2D slotSize)
 {
@@ -233,7 +257,7 @@ void UInventorySlotWidget::SetGridSlot(UGridSlot* gridPanelSlot, FVector2D slotS
 	if (Widget_Item)
 		Widget_Item->SetSize(slotSize);
 
-	UpdateItemSlotInfo(InventorySlotIndex, GetItem(), EInventorySlotState::Empty);
+	UpdateItemSlotInfo(InventorySlotIndex, GetItem(), GetSlotState());
 
 
 }
@@ -284,9 +308,24 @@ void UInventorySlotWidget::SetInteractInputs(FKey newRotate, FKey newDragMouseBu
 	RotateItemKey = newRotate;
 	DragItemMouseButton = newDragMouseButton;
 }
+
 UItemDataComponent* UInventorySlotWidget::GetItem() const {
 	if (!IsValid(Inventory)) {
 		return nullptr;
 	}
 	return Inventory->GetItem(InventorySlotIndex);
+}
+EInventorySlotState UInventorySlotWidget::GetSlotState() const {
+	if (IsValid(Inventory)) {
+		if (GetItem()) {
+
+		}
+		if (Inventory->IsSlotTaken(InventorySlotIndex)) {
+			return EInventorySlotState::Taken;
+		} 
+	}
+	return EInventorySlotState::Empty;
+}
+UInventoryItemWidget* UInventorySlotWidget::CreateItemWidget() {
+	return nullptr;
 }

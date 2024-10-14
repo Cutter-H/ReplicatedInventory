@@ -21,58 +21,7 @@ void UInventoryItemWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 
-	if (SizeBox_Root)
-	{
-		SizeBox_Root->SetVisibility(ESlateVisibility::HitTestInvisible);
-		if (IsDesignTime())
-		{
-			if (!GetClass()->IsChildOf(UInventoryItemWidget::StaticClass()))
-			{
-				SizeBox_Root->SetWidthOverride(BoxSize.X);
-				SizeBox_Root->SetHeightOverride(BoxSize.Y);
-			}
-			else
-			{
-				BoxSize.X = SizeBox_Root->GetWidthOverride();
-				BoxSize.Y = SizeBox_Root->GetHeightOverride();
-			}
-		}
-		if (Overlay_Item)
-		{
-			if (USizeBoxSlot* overlayAsSlot = Cast<USizeBoxSlot>(SizeBox_Root->AddChild(Overlay_Item)))
-			{
-				overlayAsSlot->SetPadding(0.f);
-				overlayAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
-				overlayAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-			}
-			if (ItemImage)
-			{
-				if (UOverlaySlot* imageAsSlot = Overlay_Item->AddChildToOverlay(ItemImage))
-				{
-					imageAsSlot->SetPadding(5.f);
-					imageAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
-					imageAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-				}
-			}
-			if (UIText)
-			{
-				if (UOverlaySlot* textAsSlot = Overlay_Item->AddChildToOverlay(UIText))
-				{
-					textAsSlot->SetPadding(5.f);
-					textAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Bottom);
-					textAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Right);
-				}
-				if (!GetClass()->IsChildOf(UInventoryItemWidget::StaticClass()))
-				{
-					FSlateFontInfo font = UIText->GetFont();
-					font.Size = FontSize;
-					font.OutlineSettings.OutlineSize = 1;
-					UIText->SetFont(font);
-					UIText->SetJustification(ETextJustify::Right);
-				}
-			}
-		}
-	}
+	
 	/**/
 }
 
@@ -81,6 +30,79 @@ void UInventoryItemWidget::NativeConstruct()
 	Super::NativeConstruct();
 	OnItemQuantityUpdate(0,0);
 	SetIsFocusable(true);
+}
+
+bool UInventoryItemWidget::Initialize() {
+	bool retVal = Super::Initialize();
+
+	// Create Widgets
+	/* Size Box */ {
+		if (!IsValid(SizeBox_Root)) {
+			SizeBox_Root = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SizeBox_Root"));
+		}
+		if (IsValid(SizeBox_Root)) {
+			WidgetTree->RootWidget = SizeBox_Root;
+			SizeBox_Root->SetVisibility(ESlateVisibility::HitTestInvisible);
+			if (IsDesignTime()) {
+				if (!GetClass()->IsChildOf(UInventoryItemWidget::StaticClass())) {
+					SizeBox_Root->SetWidthOverride(BoxSize.X);
+					SizeBox_Root->SetHeightOverride(BoxSize.Y);
+				}
+				else {
+					BoxSize.X = SizeBox_Root->GetWidthOverride();
+					BoxSize.Y = SizeBox_Root->GetHeightOverride();
+				}
+			}
+			/* Overlay */ {
+				if (!IsValid(Overlay_Item)) {
+					Overlay_Item = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("Overlay_Item"));
+				}
+				if (IsValid(Overlay_Item)) {
+					if (USizeBoxSlot* overlayAsSlot = Cast<USizeBoxSlot>(SizeBox_Root->AddChild(Overlay_Item))) {
+						overlayAsSlot->SetPadding(0.f);
+						overlayAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+						overlayAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+					}
+					/* Image*/ {
+						if (!IsValid(Image_Item)) {
+							Image_Item = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Image_Item"));
+						}
+						if (IsValid(Image_Item)) {
+							if (UOverlaySlot* imageAsSlot = Overlay_Item->AddChildToOverlay(Image_Item)) {
+								imageAsSlot->SetPadding(0.f);
+								imageAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+								imageAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+							}
+						}
+					}
+					/* Text */ {
+						if (!IsValid(Text_Item)) {
+							Text_Item = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Text_Item"));
+						}
+						if (IsValid(Text_Item)) {
+							if (UOverlaySlot* textAsSlot = Overlay_Item->AddChildToOverlay(Text_Item)) {
+								textAsSlot->SetPadding(0.f);
+								textAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Bottom);
+								textAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Right);
+							}
+							if (!GetClass()->IsChildOf(UInventoryItemWidget::StaticClass())) {
+								FSlateFontInfo font = Text_Item->GetFont();
+								font.Size = FontSize;
+								font.OutlineSettings.OutlineSize = 1;
+								Text_Item->SetFont(font);
+								Text_Item->SetJustification(ETextJustify::Right);
+								if (IsDesignTime()) {
+									Text_Item->SetText(FText::FromString("000"));
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return retVal;
 }
 
 void UInventoryItemWidget::OnSlotButtonPressed_Implementation()
@@ -116,13 +138,13 @@ void UInventoryItemWidget::OnItemQuantityUpdate_Implementation(int oldQuantity, 
 void UInventoryItemWidget::OnItemQuantityUpdate_Internal(int oldQuantity, int newQuantity) {
 	if (!ItemDataAsset)return;
 
-	if (ItemImage)
+	if (Image_Item)
 	{
-		ItemImage->SetBrushFromMaterial(ItemDataAsset->GetImage());
+		Image_Item->SetBrushFromMaterial(ItemDataAsset->GetImage());
 	}
-	if (UIText)
+	if (Text_Item)
 	{
-		UIText->SetText(ItemDataAsset->GetGridDisplayText());
+		Text_Item->SetText(ItemDataAsset->GetGridDisplayText());
 	}
 }
 
@@ -133,7 +155,7 @@ void UInventoryItemWidget::SetItemInfo(UItemDataComponent* newItemData) {
 	}
 	if (IsValid(newItemData))
 	{
-		ItemDataAsset->OnQuantityChange.AddDynamic(this, &UInventoryItemWidget::OnItemQuantityUpdate);
+		newItemData->OnQuantityChange.AddDynamic(this, &UInventoryItemWidget::OnItemQuantityUpdate);
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 	else
@@ -141,7 +163,9 @@ void UInventoryItemWidget::SetItemInfo(UItemDataComponent* newItemData) {
 		SetVisibility(ESlateVisibility::Hidden);
 	}
 	ItemDataAsset = newItemData;
-	OnItemQuantityUpdate(0, ItemDataAsset->GetQuantity());
+	if (ItemDataAsset) {
+		OnItemQuantityUpdate(0, ItemDataAsset->GetQuantity());
+	}
 }
 
 void UInventoryItemWidget::SetSize(FVector2D size) {
@@ -172,22 +196,22 @@ void UInventoryItemWidget::SetSize(FVector2D size) {
 }
 
 void UInventoryItemWidget::SetTint(FLinearColor tint) {
-	if (ItemImage) {
-		ItemImage->SetBrushTintColor(tint);
+	if (Image_Item) {
+		Image_Item->SetBrushTintColor(tint);
 
 	}
-	if (UIText) {
-		UIText->SetColorAndOpacity(FSlateColor(tint));
+	if (Text_Item) {
+		Text_Item->SetColorAndOpacity(FSlateColor(tint));
 
 	}
 }
 
 void UInventoryItemWidget::SetFontSize(int newFontSize) {
 	FontSize = newFontSize;
-	if (IsValid(UIText)) {
-		FSlateFontInfo font = UIText->GetFont();
+	if (IsValid(Text_Item)) {
+		FSlateFontInfo font = Text_Item->GetFont();
 		font.Size = FontSize;
-		UIText->SetFont(font);
+		Text_Item->SetFont(font);
 	}
 }
 

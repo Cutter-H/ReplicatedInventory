@@ -2,6 +2,8 @@
 
 #include "ReplicatedInventory.h"
 
+DEFINE_LOG_CATEGORY(LogInventory);
+
 #define LOCTEXT_NAMESPACE "FReplicatedInventoryModule"
 
 void FReplicatedInventoryModule::StartupModule()

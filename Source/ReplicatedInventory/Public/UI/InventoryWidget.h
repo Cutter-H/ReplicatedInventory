@@ -13,6 +13,11 @@ enum EInventorySizeDistribution
 	SizeBySlot
 };
 
+class USizeBox;
+class UGridPanel; 
+class UInventoryComponent; 
+class UInventorySlotWidget;
+
 /**
  * 
  */
@@ -21,7 +26,8 @@ class REPLICATEDINVENTORY_API UInventoryWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	virtual void NativePreConstruct() override;
+	virtual bool Initialize() override; 
+	virtual void NativeConstruct() override;
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -31,11 +37,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void UpdateGridSize();
 
-	UPROPERTY(BlueprintReadWrite, Category = "Widgets", meta = (BindWidget))
-	TObjectPtr<class USizeBox> SizeBox_Root;
+	UPROPERTY(BlueprintReadWrite, Category = "Widgets")
+	TObjectPtr<USizeBox> SizeBox_Root;
 		
-	UPROPERTY(BlueprintReadWrite, Category = "Widgets", meta = (BindWidget))
-	TObjectPtr<class UGridPanel> GridPanel_Inventory;
+	UPROPERTY(BlueprintReadWrite, Category = "Widgets")
+	TObjectPtr<UGridPanel> GridPanel_Inventory;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TEnumAsByte<EInventorySizeDistribution> SizeDistribution = EInventorySizeDistribution::SizeBySlot;
@@ -43,15 +49,20 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	FVector2D Size = FVector2D(64.f);
 
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
-	TObjectPtr<class UInventoryComponent> InventoryComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory", meta=(ExposeOnSpawn="true"))
+	TObjectPtr<UInventoryComponent> InventoryComponent;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory|Item")
-	TSubclassOf< class UInventorySlotWidget> SlotWidgetClassOverride;
+	TSubclassOf< UInventorySlotWidget> SlotWidgetClassOverride;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	FKey RotateInventoryItemKey = FKey("LeftShift");
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	FKey DragInventoryItemMouseButton = FKey("RightMouseButton");
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Preview")
+	int InventoryPreviewSize = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Preview")
+	int InventoryPreviewWidth = 4;
 };

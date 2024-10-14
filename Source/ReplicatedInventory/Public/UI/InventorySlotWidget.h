@@ -24,6 +24,7 @@ class REPLICATEDINVENTORY_API UInventorySlotWidget : public UUserWidget
 public:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
+	virtual bool Initialize() override;
 
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
@@ -37,7 +38,7 @@ public:
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
-	void SetInventorySlotIndex(int newInventorySlot);
+	void SetInventorySlotIndex(UInventoryComponent* newInventory, int newInventorySlot = -1);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	void SetGridSlot(UGridSlot* gridPanelSlot, FVector2D slotSize);
@@ -50,6 +51,9 @@ public:
 
 	UFUNCTION()
 	UItemDataComponent* GetItem() const;
+
+	UFUNCTION()
+	EInventorySlotState GetSlotState() const;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Slot")
 	int InventorySlotIndex;
@@ -64,13 +68,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Inventory|Slot")
 	FVector2D SlotSize;	
 
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Slot", meta = (BindWidget))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Slot")
 	TObjectPtr<USizeBox> SizeBox_Root;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Slot", meta = (BindWidget))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Slot")
 	TObjectPtr<UButton> Button_SlotButton;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Item", meta = (BindWidget))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Item")
 	TObjectPtr<UInventoryItemWidget> Widget_Item;
 
 	TObjectPtr<UInventoryWidget> Widget_Inventory;
@@ -78,5 +82,8 @@ public:
 	FKey RotateItemKey;
 
 	FKey DragItemMouseButton;
+
+private:
+	UInventoryItemWidget* CreateItemWidget();
 	
 };

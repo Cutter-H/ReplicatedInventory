@@ -146,12 +146,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
 	UItemDataComponent* GetItem(int index) const { return ItemSlots.IsValidIndex(index) ? ItemSlots[index] : NULL; }
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool IsSlotTaken(int index) { return TakenSlots.Contains(index); }
+
 private:
 	/*
 	 * Sets the item at the given index. More than just assigning needs to be done.
 	 */
-	UFUNCTION()
-	bool SetItem(int index, UItemDataComponent* item);
+	UFUNCTION(Server, Reliable)
+	void SetItem(int index, UItemDataComponent* item);
 	/*
 	* Utility function for internal use. This behaves similarly to AActor's HasAuthority() function. 
 	*/
@@ -204,7 +207,7 @@ private:
 	 * Checks if a given index is within boundries.
 	 */
 	UFUNCTION()
-	bool IsValidIndex(int index) const { return (index > 0) || (index < InventorySize); }
+	bool IsValidIndex(int index) const { return (index >= 0) || (index < InventorySize); }
 
 	UFUNCTION(NetMulticast, Reliable)
 	void UpdatedIndex_Multi(int index, EInventorySlotState newSlotState);

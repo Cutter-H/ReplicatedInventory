@@ -7,7 +7,10 @@
 #include "InventoryItemWidget.generated.h"
 
 class UItemDataComponent;
-
+class USizeBox;
+class UOverlay;
+class UImage;
+class UTextBlock;
 /**
  * 
  */
@@ -18,6 +21,7 @@ class REPLICATEDINVENTORY_API UInventoryItemWidget : public UUserWidget
 public:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
+	virtual bool Initialize() override;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Inventory Item")
 	void OnSlotButtonPressed();
@@ -65,7 +69,7 @@ public:
 	UFUNCTION()
 	void UpdateVisibility();
 
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Item")
 	TObjectPtr<UItemDataComponent> ItemDataAsset;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Inventory Item")
@@ -74,12 +78,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Item")
 	int FontSize = 10;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory Item", meta = (BindWidget))
-	TObjectPtr<class USizeBox> SizeBox_Root;
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory Item", meta = (BindWidget))
-	TObjectPtr<class UOverlay> Overlay_Item;
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory Item", meta = (BindWidget))
-	TObjectPtr<class UImage> ItemImage;
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory Item", meta = (BindWidget))
-	TObjectPtr<class UTextBlock> UIText;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Item")
+	TObjectPtr<USizeBox> SizeBox_Root;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Item")
+	TObjectPtr<UOverlay> Overlay_Item;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Item")
+	TObjectPtr<UImage> Image_Item;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Item")
+	TObjectPtr<UTextBlock> Text_Item;
 };
