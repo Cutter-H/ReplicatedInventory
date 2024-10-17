@@ -22,9 +22,12 @@ class REPLICATEDINVENTORY_API UInventorySlotWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	//UInventorySlotWidget(const FObjectInitializer& ObjectInitializer);
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 	virtual bool Initialize() override;
+	virtual void NativeOnInitialized() override;
+	virtual void InitializeNativeClassData() override;
 
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;

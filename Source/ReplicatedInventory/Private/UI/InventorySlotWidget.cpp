@@ -12,6 +12,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 
+#include "Components/CanvasPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/SizeBoxSlot.h"
@@ -21,10 +22,17 @@
 void UInventorySlotWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
+	SizeBox_Root = WidgetTree->FindWidget<USizeBox>("SizeBox_Root");
+	Button_SlotButton = WidgetTree->FindWidget<UButton>("Button_SlotButton");
+	Widget_Item = WidgetTree->FindWidget<UInventoryItemWidget>("Widget_Item");
+
 }
 void UInventorySlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	
+		
 	// Bindings of Delegates go here
 	if (!Button_SlotButton) {
 		return;
@@ -40,52 +48,56 @@ void UInventorySlotWidget::NativeConstruct()
 }
 
 bool UInventorySlotWidget::Initialize() {
-	bool retVal = Super::Initialize();
+	//bool retVal = Super::Initialize();
 
 	// Widget Creation
-	/* Size Box */ {
-		if (!IsValid(SizeBox_Root)) {
-			SizeBox_Root = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SizeBox_Root"));
-		}
-		if (IsValid(SizeBox_Root)) {
-			WidgetTree->RootWidget = SizeBox_Root;
+	
+	if (!IsValid(SizeBox_Root)) {
+	SizeBox_Root = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SizeBox_Root"));
+	}
+	
+	if (!IsValid(Button_SlotButton)) {
+		Button_SlotButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("Button_SlotButton"));
+	}
+	
+	if (!IsValid(Widget_Item)) {
+		Widget_Item = WidgetTree->ConstructWidget<UInventoryItemWidget>(UInventoryItemWidget::StaticClass(), TEXT("Widget_Item"));
+	}
+	
+	if (IsValid(SizeBox_Root)) {
+		WidgetTree->RootWidget = SizeBox_Root;
+		if (IsValid(Button_SlotButton)) {
+			if (USizeBoxSlot* slot = Cast<USizeBoxSlot>(SizeBox_Root->AddChild(Button_SlotButton))) {
+				slot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+				slot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
 
-			/* Button */ {
-				if (!IsValid(Button_SlotButton)) {
-					Button_SlotButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("Button_SlotButton"));
+			}
+			/* Item */
+			if (IsValid(Widget_Item)) {
+				if (UButtonSlot* itemWidgetAsSlot = Cast<UButtonSlot>(Button_SlotButton->AddChild(Widget_Item))) {
+					itemWidgetAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+					itemWidgetAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+					itemWidgetAsSlot->SetPadding(0.f);
 				}
-				if (IsValid(Button_SlotButton)) {
-					if (USizeBoxSlot* slot = Cast<USizeBoxSlot>(SizeBox_Root->AddChild(Button_SlotButton))) {
-						slot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-						slot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
-
-					}
-
-					/* Item */ {
-						if (!IsValid(Widget_Item)) {
-							Widget_Item = WidgetTree->ConstructWidget<UInventoryItemWidget>(UInventoryItemWidget::StaticClass(), TEXT("Widget_Item"));
-						}
-						if (IsValid(Widget_Item)) {
-							if (UButtonSlot* itemWidgetAsSlot = Cast<UButtonSlot>(Button_SlotButton->AddChild(Widget_Item))) {
-								itemWidgetAsSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
-								itemWidgetAsSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-								itemWidgetAsSlot->SetPadding(0.f);
-							}
-							if (!IsDesignTime()) {
-								if (IsValid(Inventory)) {
-									if (UItemDataComponent* itemData = GetItem())
-										Widget_Item->SetItemInfo(itemData);
-									Widget_Item->SetSize(SlotSize);
-								}
-							}
-						}
+				if (!IsDesignTime()) {
+					if (IsValid(Inventory)) {
+						if (UItemDataComponent* itemData = GetItem())
+							Widget_Item->SetItemInfo(itemData);
+						Widget_Item->SetSize(SlotSize);
 					}
 				}
 			}
 		}
 	}
 
-	return retVal;
+	return Super::Initialize();
+}
+
+void UInventorySlotWidget::NativeOnInitialized() {
+	Super::NativeOnInitialized();
+}
+
+void UInventorySlotWidget::InitializeNativeClassData() {
 }
 
 void UInventorySlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
