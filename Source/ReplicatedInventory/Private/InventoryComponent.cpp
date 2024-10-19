@@ -22,8 +22,8 @@ void UInventoryComponent::BeginPlay() {
 		ReplicateFinishedGeneratingInventory_Multi();
 		FActorSpawnParameters spawnParams;
 		spawnParams.Owner = GetOwner();
-		NewDragHolder = GetWorld()->SpawnActor<AReplicatedDragHolder>(AReplicatedDragHolder::StaticClass(), spawnParams);
-		NewDragHolder->OriginalInventory = this;
+		//NewDragHolder = GetWorld()->SpawnActor<AReplicatedDragHolder>(AReplicatedDragHolder::StaticClass(), spawnParams);
+		//NewDragHolder->OriginalInventory = this;
 		ReplicateFinishedGeneratingInventory_Multi();
 	}
 	
@@ -140,7 +140,7 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 				empty = SlotsAreEmpty(slots);
 			}
 			if (empty) {
-				SetItem(desiredIndex, itemData);
+				SetItemOnServer(desiredIndex, itemData);
 				return desiredIndex;
 			}
 			if (IsValid(ItemSlots[desiredIndex])) {
@@ -151,9 +151,6 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 					itemData->SetQuantity(excessValue);
 					if (excessValue < originalValue) {
 						return desiredIndex;
-					}
-					else {
-						return -1;
 					}
 				}
 			}
@@ -185,7 +182,7 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 		}
 		// We found a free slot and still have quantity of the item to add, so we add it to the freeIndex found earlier.
 		if (freeIndex >= 0) {
-			SetItem(freeIndex, itemData);
+			SetItemOnServer(freeIndex, itemData);
 		}
 		// This will be -1 (Not found) if we don't have a free slot or it will be the added slot.
 		return freeIndex;
@@ -193,7 +190,9 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 	// Unable to add
 	return -1;
 }
-
+int UInventoryComponent::AddItemComponentToInventory(UItemDataComponent* itemData, int desiredIndex) {
+	return AddItemToInventory(itemData->GetOwner(), desiredIndex);
+}
 int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item, FItemDataAmount& modifiedItemData, int desiredIndex)
 {
 	modifiedItemData = item;
@@ -240,7 +239,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 			if (HasAuthority()) {
 				if (AActor* newItem = GenerateItemWithData(item.DataAsset, amountToAdd)) {
 					if (UItemDataComponent* newItemData = newItem->FindComponentByClass<UItemDataComponent>()) {
-						SetItem(desiredIndex, newItemData);
+						SetItemOnServer(desiredIndex, newItemData);
 					}
 					else {
 						newItem->Destroy();
@@ -301,14 +300,16 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 				amountToAdd = ItemSlots[s]->AddQuantity(amountToAdd);
 				if (amountToAdd <= 0) {
 					modifiedItemData.Quantity = FMath::Max(amountToAdd, 0);
+					UE_LOG(LogInventory, Log, TEXT("Added %s to index %s."), *item.DataAsset->Name.ToString(), *FString::FromInt(s));
 					return s;
 				}
 			}
 			for (int s : availableSlots) {
 				if (HasAuthority()) {
-					if (AActor* newItem = GenerateItemWithData(item.DataAsset, amountToAdd)) {
+					AActor* newItem = GenerateItemWithData(item.DataAsset, amountToAdd);
+					if (IsValid(newItem)) {
 						if (UItemDataComponent* newItemData = newItem->FindComponentByClass<UItemDataComponent>()) {
-							SetItem(s, newItemData);
+							SetItemOnServer(s, newItemData);
 						}
 						else {
 							newItem->Destroy();
@@ -320,6 +321,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 				amountToAdd -= itemMaxQuantity;
 				if (amountToAdd <= 0) {
 					modifiedItemData.Quantity = FMath::Max(amountToAdd, 0);
+					UE_LOG(LogInventory, Log, TEXT("Added %s to index %s."), *item.DataAsset->Name.ToString(), *FString::FromInt(s));
 					return s;
 				}
 			}
@@ -357,7 +359,7 @@ AActor* UInventoryComponent::RemoveItem(int index) {
 			UpdateTakenSlotChange_Server(s, false);
 		}
 	}
-	SetItem(index, NULL);
+	SetItemOnServer(index, NULL);
 	return item->GetOwner();
 
 }
@@ -383,10 +385,9 @@ void UInventoryComponent::ReturnItemFromHolder(AReplicatedDragHolder* holder) {
 	else
 		ReturnItemFromHolder_Server(holder);
 }
-void UInventoryComponent::SetItem_Implementation(int index, UItemDataComponent* item) {
-	if (!HasAuthority() || !IsValidIndex(index)) {
-		return;
-	}
+
+
+void UInventoryComponent::SetItemOnServer_Implementation(int index, UItemDataComponent* item) {
 	if (IsValid(item)) {
 		FItemGridSize size = item->GetSize();
 		if (!size.IsSingle()) {
@@ -402,7 +403,8 @@ void UInventoryComponent::SetItem_Implementation(int index, UItemDataComponent* 
 		
 		item->GetOwner()->SetOwner(GetOwner());
 		ItemSlots[index] = item;
-		OnInventorySlotChange.Broadcast(index, item, EInventorySlotState::Used);
+		OnInventorySlotChange.Broadcast(index, item, EInventorySlotState::Used); 
+		UpdatedIndex_Multi(index, item, EInventorySlotState::Used);
 	}
 	else {
 		UItemDataComponent* oldItemData = ItemSlots[index];
@@ -414,10 +416,50 @@ void UInventoryComponent::SetItem_Implementation(int index, UItemDataComponent* 
 			}
 			ItemSlots[index] = nullptr;
 			OnInventorySlotChange.Broadcast(index, nullptr, EInventorySlotState::Empty);
+			UpdatedIndex_Multi(index, nullptr, EInventorySlotState::Empty);
+		}
+	}
+}
+void UInventoryComponent::SetItem(int index, UItemDataComponent* item) {
+	if (!HasAuthority()) {
+		return;
+	}
+	if (IsValid(item)) {
+		FItemGridSize size = item->GetSize();
+		if (!size.IsSingle()) {
+			TArray<int> itemSlots = GetSlots(index, size);
+			if (itemSlots.Num() <= 0) {
+				return;
+			}
+			for (int i : itemSlots) {
+				TakenSlots.Add(i);
+				ReplicateTakenSlotChange_Multi(i, true);
+			}
+		}
+
+		item->GetOwner()->SetOwner(GetOwner());
+		ItemSlots[index] = item;
+		OnInventorySlotChange.Broadcast(index, item, EInventorySlotState::Used);
+		UpdatedIndex_Multi(index, item, EInventorySlotState::Used);
+	}
+	else {
+		UItemDataComponent* oldItemData = ItemSlots[index];
+		if (IsValid(oldItemData)) {
+			TArray<int> itemSlots = GetSlots(index, oldItemData->GetSize());
+			for (int i : itemSlots) {
+				TakenSlots.Remove(i);
+				ReplicateTakenSlotChange_Multi(i, false);
+			}
+			ItemSlots[index] = nullptr;
+			OnInventorySlotChange.Broadcast(index, nullptr, EInventorySlotState::Empty);
+			UpdatedIndex_Multi(index, nullptr, EInventorySlotState::Empty);
 		}
 	}
 }
 bool UInventoryComponent::HasAuthority() const {
+	if (!GetOwner()->GetIsReplicated()) {
+		return true;
+	}
 	return (IsValid(GetOwner()) && GetOwner()->HasAuthority());
 }
 bool UInventoryComponent::IsLocallyControlled() const {
@@ -440,24 +482,38 @@ void UInventoryComponent::AddItemToIndexWithData_Server_Implementation(UInventor
 	}
 }
 AActor* UInventoryComponent::GenerateItemWithData(UInventoryItemData* itemData, int quantity) {
-	AActor* newItem = GetWorld()->SpawnActorDeferred<AActor>(itemData->ItemClass, FTransform(), GetOwner(), GetOwner()->GetInstigator());
+	if (!IsValid(itemData)) {
+		return nullptr;
+	}
+	AActor* newItem = GetWorld()->SpawnActorDeferred<AActor>(itemData->ItemClass, FTransform(), GetOwner(), GetOwner()->GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	if (IsValid(newItem)) {
+		newItem->SetReplicates(true);
 		UItemDataComponent* itemComp = Cast<UItemDataComponent>(newItem->AddComponentByClass(UItemDataComponent::StaticClass(), false, FTransform(), true));
 		if (IsValid(itemComp)) {
 			itemComp->ItemDataAsset = itemData;
 			newItem->FinishAddComponent(itemComp, true, FTransform());
+			
 			itemComp->RegisterComponent();
-			itemComp->SetQuantity(quantity);
 			newItem->FinishSpawning(FTransform());
+
+			itemComp->ReplicateDataAssetInfo(itemData);
+			itemComp->SetQuantity(quantity);
+			UE_LOG(LogInventory, Log, TEXT("Spawned the item %s"), *itemData->Name.ToString());
 			return newItem;
 		}
-		itemComp->DestroyComponent();
+		else {
+			itemComp->DestroyComponent(); 
+			newItem->Destroy();
+		}
+		return nullptr;
 	}
 	newItem->Destroy();
-	return NULL;
+	return nullptr;
 }
-void UInventoryComponent::UpdatedIndex_Multi_Implementation(int index, EInventorySlotState newSlotState) {
-	OnInventorySlotChange.Broadcast(index, GetItem(index), newSlotState);
+void UInventoryComponent::UpdatedIndex_Multi_Implementation(int index, UItemDataComponent* item, EInventorySlotState newSlotState) {
+	if (!HasAuthority()) {
+		OnInventorySlotChange.Broadcast(index, item, newSlotState);
+	}
 }
 void UInventoryComponent::OnRep_ItemSlots(TArray<UItemDataComponent*> oldItemSlots) {
 	int max = ItemSlots.Num();

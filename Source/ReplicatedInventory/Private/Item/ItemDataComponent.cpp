@@ -82,7 +82,9 @@ FText UItemDataComponent::GetGridDisplayText_Implementation() const {
 
 FItemGridSize UItemDataComponent::RotateItem() {
 	bItemRotated = !bItemRotated;
-
+	if (DynamicImage) {
+		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
+	}
 	return GetSize();
 }
 
@@ -96,17 +98,28 @@ void UItemDataComponent::BeginPlay()
 		MaxQuantity = ItemDataAsset->MaxQuantity;
 		Size = ItemDataAsset->Size;
 		Image = ItemDataAsset->Image;
-	}
-	if (IsValid(Image)) {
+		ItemRotationScalar = ItemDataAsset->ImageRotateScalarName;
 		DynamicImage = UMaterialInstanceDynamic::Create(Image, this);
-		
 	}
 }
 
 void UItemDataComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UItemDataComponent, Quantity);
-	DOREPLIFETIME(UItemDataComponent, DynamicImage);
+	DOREPLIFETIME_CONDITION_NOTIFY(UItemDataComponent, bItemRotated, COND_None, REPNOTIFY_Always);
+}
+
+void UItemDataComponent::ReplicateDataAssetInfo_Implementation(UInventoryItemData* newData) {
+	ItemDataAsset = newData;
+	if (IsValid(ItemDataAsset)) {
+		Name = ItemDataAsset->Name;
+		Description = ItemDataAsset->Description;
+		MaxQuantity = ItemDataAsset->MaxQuantity;
+		Size = ItemDataAsset->Size;
+		Image = ItemDataAsset->Image;
+		ItemRotationScalar = ItemDataAsset->ImageRotateScalarName;
+		DynamicImage = UMaterialInstanceDynamic::Create(Image, this);
+	}
 }
 
 void UItemDataComponent::SetQuantityOnServer_Implementation(int newQuantity) {
@@ -126,3 +139,8 @@ void UItemDataComponent::BroadcastQuantityUpdate_Implementation(int oldQuantity,
 	OnGridTextChange.Broadcast(GetGridDisplayText());
 }
 
+void UItemDataComponent::OnRep_ItemRotated() {
+	if (DynamicImage) {
+		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
+	}
+}

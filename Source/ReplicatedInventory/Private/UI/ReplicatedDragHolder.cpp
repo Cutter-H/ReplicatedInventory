@@ -20,10 +20,10 @@ AReplicatedDragHolder::AReplicatedDragHolder()
 void AReplicatedDragHolder::BeginPlay()
 {
 	Super::BeginPlay();	
-	if(GetOwner()->GetInstigator()->IsLocallyControlled())
-	{
-		OwningPlayer = Cast<APlayerController>(GetOwner()->GetInstigator()->GetController());
-	}
+	//if(GetOwner()->GetInstigator()->IsLocallyControlled())
+	//{
+	//	OwningPlayer = Cast<APlayerController>(GetOwner()->GetInstigator()->GetController());
+	//}
 }
 
 void AReplicatedDragHolder::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

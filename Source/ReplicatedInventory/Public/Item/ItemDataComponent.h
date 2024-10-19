@@ -74,24 +74,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	bool MatchesItem(FName otherItemName) const { return otherItemName == GetItemName(); }
 
-
 	UFUNCTION()
 	FItemGridSize RotateItem();
 
+	UFUNCTION(NetMulticast, Reliable)
+	void ReplicateDataAssetInfo(UInventoryItemData* newData);
+
 	UPROPERTY(EditAnywhere, Category = "Item", BlueprintReadOnly, meta = (ExposeOnSpawn = "true"))
 	TObjectPtr<UInventoryItemData> ItemDataAsset;
+
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 	
 private:
+	
 
 	UFUNCTION(Server, Reliable)
 	void SetQuantityOnServer(int newQuantity);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void BroadcastQuantityUpdate(int oldQuantity, int newQuantity);
+
+	UFUNCTION()
+	void OnRep_ItemRotated();
 
 	UPROPERTY(EditAnywhere, Category = "Item", Replicated)
 	int Quantity = 1;
@@ -111,10 +118,13 @@ private:
 	UPROPERTY()
 	TObjectPtr<UMaterialInterface> Image;
 
-	UPROPERTY(Replicated)
+	UPROPERTY()
+	FName ItemRotationScalar;
+
+	UPROPERTY(Replicated, ReplicatedUsing="OnRep_ItemRotated")
 	bool bItemRotated = false;
 
-	UPROPERTY(Replicated);
+	UPROPERTY();
 	TObjectPtr<UMaterialInstanceDynamic> DynamicImage;
 	
 	

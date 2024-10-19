@@ -113,6 +113,12 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	int AddItemToInventory(AActor* item, int desiredIndex = -1);
+
+	/*
+	 * Adds item data to the inventory. If any excess exists then the input item will be modified.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
+	int AddItemComponentToInventory(UItemDataComponent* itemData, int desiredIndex = -1);
 	/*
 	* Adds an item to the inventory using a data asset. May create a new item if the quantity is not added with existing items.
 	*/
@@ -153,6 +159,8 @@ private:
 	 * Sets the item at the given index. More than just assigning needs to be done.
 	 */
 	UFUNCTION(Server, Reliable)
+	void SetItemOnServer(int index, UItemDataComponent* item);
+	UFUNCTION()
 	void SetItem(int index, UItemDataComponent* item);
 	/*
 	* Utility function for internal use. This behaves similarly to AActor's HasAuthority() function. 
@@ -209,7 +217,7 @@ private:
 	bool IsValidIndex(int index) const { return (index >= 0) || (index < InventorySize); }
 
 	UFUNCTION(NetMulticast, Reliable)
-	void UpdatedIndex_Multi(int index, EInventorySlotState newSlotState);
+	void UpdatedIndex_Multi(int index, UItemDataComponent* item, EInventorySlotState newSlotState);
 
 	UFUNCTION()
 	void OnRep_ItemSlots(TArray<UItemDataComponent*> oldItemSlots);
