@@ -31,6 +31,7 @@ bool UItemDataComponent::SetQuantity(int newAmount) {
 			if (newAmount == MaxQuantity) {
 				OnQuantityFill.Broadcast();
 			}
+			OnGridTextChange.Broadcast(GetGridDisplayText());
 		}
 	}
 	else {
@@ -75,7 +76,7 @@ int UItemDataComponent::AddQuantity(int difference) {
 }
 
 FText UItemDataComponent::GetGridDisplayText_Implementation() const {
-	return FText::FromString(FString::FromInt(Quantity));
+	return Quantity > 1 ? FText::FromString(FString::FromInt(Quantity)) : FText::FromString("");
 }
 
 
@@ -98,7 +99,7 @@ void UItemDataComponent::BeginPlay()
 	}
 	if (IsValid(Image)) {
 		DynamicImage = UMaterialInstanceDynamic::Create(Image, this);
-
+		
 	}
 }
 
@@ -122,6 +123,6 @@ void UItemDataComponent::BroadcastQuantityUpdate_Implementation(int oldQuantity,
 	if (newQuantity == MaxQuantity) {
 		OnQuantityFill.Broadcast();
 	}
-	OnGridTextChange.Broadcast();
+	OnGridTextChange.Broadcast(GetGridDisplayText());
 }
 

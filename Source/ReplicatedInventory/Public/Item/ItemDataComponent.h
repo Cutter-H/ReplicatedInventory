@@ -10,6 +10,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FQuantityChangeSignature, int, oldQuantity, int, newQuantity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FItemGenericSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FItemGridTextChangeSignature, FText, newGridText);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSizeFlippedSignature, FItemGridSize, oldSize, FItemGridSize, newSize);
 
 class UInventoryItemData;
@@ -33,7 +34,7 @@ public:
 	FSizeFlippedSignature OnSizeFlipped;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Item")
-	FItemGenericSignature OnGridTextChange;
+	FItemGridTextChangeSignature OnGridTextChange;
 
 	UItemDataComponent();
 

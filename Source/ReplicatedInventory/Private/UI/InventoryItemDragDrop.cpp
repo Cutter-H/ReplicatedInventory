@@ -45,7 +45,7 @@ void UInventoryItemDragDrop::RecheckAvailability()
 	{
 		SetSlotAvailable(false);
 		return;
-	}
+	}/*
 	if (UInventoryComponent* inventory = OverSlot->Inventory)
 	{
 		if(UInventoryItemWidget* dragWidget = Cast<UInventoryItemWidget>(DefaultDragVisual))
@@ -60,5 +60,5 @@ void UInventoryItemDragDrop::RecheckAvailability()
 				return;
 			}
 		}
-	}
+	}/**/
 }

@@ -132,10 +132,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
 	void OnFinishGeneratingInventory(UInventoryComponent* inventory);
 
-	UFUNCTION()
 	/*
 	* Create the actor used for drag/drop or transferring of items.
-	*/
+	*/UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	class AReplicatedDragHolder* GetItemHolder(UItemDataComponent* holdItem, int holdItemIndex);
 	/*
 	* Returns the item in the holder back to its slot.

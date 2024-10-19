@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ReplicatedInventory.h"
 #include "InventoryComponent.h"
+#include "ReplicatedInventory.h"
 #include "Item/ItemDataComponent.h"
 #include "Item/InventoryItemData.h"
 #include "UI/ReplicatedDragHolder.h"
@@ -135,21 +135,26 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 	if (desiredIndex >= 0) {
 		if(desiredIndex < InventorySize) {
 			TArray<int> slots = GetSlots(desiredIndex, itemSize, true);
-			bool empty = SlotsAreEmpty(slots);
+			bool empty = true;
+			if (!itemSize.IsSingle()) {
+				empty = SlotsAreEmpty(slots);
+			}
 			if (empty) {
 				SetItem(desiredIndex, itemData);
 				return desiredIndex;
 			}
-			if (ItemSlots[desiredIndex]->MatchesItem(itemData->GetItemName()))	{
-				int originalValue = itemQuantity;
-				
-				int excessValue = ItemSlots[desiredIndex]->AddQuantity(originalValue);
-				itemData->SetQuantity(excessValue);
-				if (excessValue < originalValue) {
-					return desiredIndex;
-				}
-				else {
-					return -1;
+			if (IsValid(ItemSlots[desiredIndex])) {
+				if (ItemSlots[desiredIndex]->MatchesItem(itemData->GetItemName())) {
+					int originalValue = itemQuantity;
+
+					int excessValue = ItemSlots[desiredIndex]->AddQuantity(originalValue);
+					itemData->SetQuantity(excessValue);
+					if (excessValue < originalValue) {
+						return desiredIndex;
+					}
+					else {
+						return -1;
+					}
 				}
 			}
 		}
@@ -397,10 +402,20 @@ void UInventoryComponent::SetItem_Implementation(int index, UItemDataComponent* 
 		
 		item->GetOwner()->SetOwner(GetOwner());
 		ItemSlots[index] = item;
-		OnInventorySlotChange.Broadcast(index, item, IsValid(item) ? EInventorySlotState::Used : EInventorySlotState::Empty);
-		return;
+		OnInventorySlotChange.Broadcast(index, item, EInventorySlotState::Used);
 	}
-	return;
+	else {
+		UItemDataComponent* oldItemData = ItemSlots[index];
+		if (IsValid(oldItemData)) {
+			TArray<int> itemSlots = GetSlots(index, oldItemData->GetSize());
+			for (int i : itemSlots) {
+				TakenSlots.Remove(i);
+				ReplicateTakenSlotChange_Multi(i, false);
+			}
+			ItemSlots[index] = nullptr;
+			OnInventorySlotChange.Broadcast(index, nullptr, EInventorySlotState::Empty);
+		}
+	}
 }
 bool UInventoryComponent::HasAuthority() const {
 	return (IsValid(GetOwner()) && GetOwner()->HasAuthority());

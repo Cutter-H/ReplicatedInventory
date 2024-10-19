@@ -6,6 +6,8 @@
 #include "Blueprint/DragDropOperation.h"
 #include "InventoryItemDragDrop.generated.h"
 
+//class UUserWidget;
+
 /**
  * 
  */
@@ -15,16 +17,16 @@ class REPLICATEDINVENTORY_API UInventoryItemDragDrop : public UDragDropOperation
 	GENERATED_BODY()
 public:
 
-	UPROPERTY()
-	TObjectPtr<class UInventorySlotWidget> OverSlot;
+	UPROPERTY(BlueprintReadWrite, Category = "Item")
+	TObjectPtr<UUserWidget> OverSlot;
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetSlotAvailable(bool bAvailable);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Item")
 	void UpdateOffset();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Item")
 	void RecheckAvailability();
 	
 	//Payload should be the replicated holder.
