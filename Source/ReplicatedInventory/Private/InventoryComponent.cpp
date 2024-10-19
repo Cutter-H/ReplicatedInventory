@@ -4,7 +4,6 @@
 #include "ReplicatedInventory.h"
 #include "Item/ItemDataComponent.h"
 #include "Item/InventoryItemData.h"
-#include "UI/ReplicatedDragHolder.h"
 #include "Net/UnrealNetwork.h"
 
 UInventoryComponent::UInventoryComponent() {
@@ -12,7 +11,6 @@ UInventoryComponent::UInventoryComponent() {
 	SetIsReplicatedByDefault(true);
 }
 void UInventoryComponent::BeginPlay() {
-	
 	Super::BeginPlay();
 	if (HasAuthority()) {
 		// Resize item slot array.
@@ -22,8 +20,6 @@ void UInventoryComponent::BeginPlay() {
 		ReplicateFinishedGeneratingInventory_Multi();
 		FActorSpawnParameters spawnParams;
 		spawnParams.Owner = GetOwner();
-		//NewDragHolder = GetWorld()->SpawnActor<AReplicatedDragHolder>(AReplicatedDragHolder::StaticClass(), spawnParams);
-		//NewDragHolder->OriginalInventory = this;
 		ReplicateFinishedGeneratingInventory_Multi();
 	}
 	
@@ -33,7 +29,6 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UInventoryComponent, ItemSlots, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME(UInventoryComponent, InventorySize); 
 	DOREPLIFETIME(UInventoryComponent, InventoryWidth);
-	DOREPLIFETIME(UInventoryComponent, NewDragHolder);
 	DOREPLIFETIME(UInventoryComponent, TakenSlots);
 
 }
@@ -363,27 +358,59 @@ AActor* UInventoryComponent::RemoveItem(int index) {
 	return item->GetOwner();
 
 }
-AReplicatedDragHolder* UInventoryComponent::GetItemHolder(UItemDataComponent* holdItem, int holdItemIndex) {
-	AReplicatedDragHolder* oldHolder = NewDragHolder;
-	if (HasAuthority()) {
-		NewDragHolder->HoldItem(holdItem, holdItemIndex);
-		FActorSpawnParameters spawnParams;
-		spawnParams.Owner = GetOwner();
-		NewDragHolder = GetWorld()->SpawnActor<AReplicatedDragHolder>(AReplicatedDragHolder::StaticClass(), spawnParams);
-		NewDragHolder->OriginalInventory = this;
+bool UInventoryComponent::CanRotateSlot(int index) const {
+	if (!IsValidIndex(index)) {
+		return false;
 	}
-	else
-		GenerateItemHolder_Server(holdItem, holdItemIndex);
-	return oldHolder;
+	UItemDataComponent* item = ItemSlots[index];
+	if (!IsValid(item)) {
+		return false;
+	}
+	FItemGridSize originalSize = item->GetSize();
+	if (originalSize.Height == originalSize.Width) {
+		return true;
+	}
+
+	int offsetOrigin = index;
+	FItemGridSize offsetSize;
+	if (originalSize.Width > originalSize.Height) {
+		offsetOrigin += GetInventoryWidth() * originalSize.Height;
+		offsetSize = FItemGridSize(originalSize.Height, originalSize.Width - originalSize.Height);
+	}
+	else { // originalHeight > originalWidth
+		offsetOrigin += originalSize.Width;
+		offsetSize = FItemGridSize(originalSize.Height - originalSize.Width, originalSize.Width);
+	}
+	TArray<int> newSlots = GetSlots(offsetOrigin, offsetSize, true);
+	if (!SlotsAreEmpty(newSlots)) {
+		return false;
+	}
+	return true;
 }
-void UInventoryComponent::ReturnItemFromHolder(AReplicatedDragHolder* holder) {
-	if (!holder) return;
-	if (HasAuthority()) {
-		holder->ReturnItem();
-		holder->Destroy();
+bool UInventoryComponent::RotateSlot(int index) {
+	if (!CanRotateSlot(index)) {
+		return false;
 	}
-	else
-		ReturnItemFromHolder_Server(holder);
+	if (!HasAuthority()) {
+		RotateItemOnServer(index);
+		return true;
+	}
+	FItemGridSize oldSize = ItemSlots[index]->GetSize();
+	ItemSlots[index]->RotateItem();
+	if (!oldSize.IsSingle()) {
+		TArray<int> slots = GetSlots(index, oldSize);
+		for (int i : slots) {
+			TakenSlots.Remove(i);
+			ReplicateTakenSlotChange_Multi(i, false);
+		}
+		slots = GetSlots(index, oldSize.GetFlipped());
+		for (int i : slots) {
+			TakenSlots.Add(i);
+			ReplicateTakenSlotChange_Multi(i, true);
+		}
+	}
+	UpdatedIndex_Multi(index, ItemSlots[index], EInventorySlotState::Used);
+	return true;
 }
 
 
@@ -568,19 +595,21 @@ void UInventoryComponent::ReplicateFinishedGeneratingInventory_Multi_Implementat
 void UInventoryComponent::RequestFinishGeneratingInventory_Server_Implementation() {
 
 }
-void UInventoryComponent::GenerateItemHolder_Server_Implementation(UItemDataComponent* holdItem, int holdItemIndex) {
-	if (!HasAuthority()) return;
-	NewDragHolder->HoldItem(holdItem, holdItemIndex);
-	FActorSpawnParameters spawnParams;
-	spawnParams.Owner = GetOwner();
-	NewDragHolder = GetWorld()->SpawnActor<AReplicatedDragHolder>(AReplicatedDragHolder::StaticClass(), spawnParams);
-	NewDragHolder->OriginalInventory = this;
-	
+void UInventoryComponent::RotateItemOnServer_Implementation(int index) {
+	FItemGridSize oldSize = ItemSlots[index]->GetSize();
+	ItemSlots[index]->RotateItem();
+	if (!oldSize.IsSingle()) {
+		TArray<int> slots = GetSlots(index, oldSize);
+		for (int i : slots) {
+			TakenSlots.Remove(i);
+			ReplicateTakenSlotChange_Multi(i, false);
+		}
+		slots = GetSlots(index, oldSize.GetFlipped());
+		for (int i : slots) {
+			TakenSlots.Add(i);
+			ReplicateTakenSlotChange_Multi(i, true);
+		}
+	}
+	UpdatedIndex_Multi(index, ItemSlots[index], EInventorySlotState::Used);
 }
-void UInventoryComponent::ReturnItemFromHolder_Server_Implementation(AReplicatedDragHolder* holder) {
-	if (!holder) return;
-	holder->ReturnItem();
-	holder->Destroy();
-}
-
 

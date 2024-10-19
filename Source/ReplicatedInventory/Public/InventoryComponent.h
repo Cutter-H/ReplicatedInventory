@@ -8,7 +8,6 @@
 #include "InventoryComponent.generated.h"
 
 class UInventoryItemData;
-class AReplicatedDragHolder;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGeneralInventoryChangeSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySizeChangeSignature, int, delta);
@@ -138,21 +137,17 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
 	void OnFinishGeneratingInventory(UInventoryComponent* inventory);
 
-	/*
-	* Create the actor used for drag/drop or transferring of items.
-	*/UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
-	class AReplicatedDragHolder* GetItemHolder(UItemDataComponent* holdItem, int holdItemIndex);
-	/*
-	* Returns the item in the holder back to its slot.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void ReturnItemFromHolder(class AReplicatedDragHolder* holder);
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
 	UItemDataComponent* GetItem(int index) const { return ItemSlots.IsValidIndex(index) ? ItemSlots[index] : NULL; }
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool IsSlotTaken(int index) { return TakenSlots.Contains(index); }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool CanRotateSlot(int index) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool RotateSlot(int index);
 
 private:
 	/*
@@ -201,16 +196,6 @@ private:
 	UFUNCTION(Server, Reliable)
 	void RequestFinishGeneratingInventory_Server();
 	/*
-	* Creates a new Item holder actor.
-	*/
-	UFUNCTION(Server, Reliable)
-	void GenerateItemHolder_Server(UItemDataComponent* holdItem, int holdItemIndex);
-	/*
-	* Returns the item in the holder on the server.
-	*/
-	UFUNCTION(Server, Reliable)
-	void ReturnItemFromHolder_Server(AReplicatedDragHolder* holder);
-	/*
 	 * Checks if a given index is within boundries.
 	 */
 	UFUNCTION()
@@ -228,6 +213,8 @@ private:
 	UFUNCTION(Server, Reliable)
 	void UpdateTakenSlotChange_Server(int index, bool taken);
 
+	UFUNCTION(Server, Reliable)
+	void RotateItemOnServer(int index);
 
 	/*
 	* The slots of the items stored in this inventory.
@@ -244,11 +231,6 @@ private:
 	*/
 	UPROPERTY(Replicated, EditAnywhere, Category = "Inventory")
 	int InventoryWidth = 1;
-	/*
-	* Generates a new drag payload for mouse drag actions.
-	*/
-	UPROPERTY(Replicated);
-	TObjectPtr<class AReplicatedDragHolder> NewDragHolder;
 
 	UPROPERTY(Replicated)
 	TArray<int> TakenSlots;
