@@ -75,14 +75,17 @@ FText UItemDataComponent::GetGridDisplayText_Implementation() const {
 	return Quantity > 1 ? FText::FromString(FString::FromInt(Quantity)) : FText::FromString("");
 }
 FItemGridSize UItemDataComponent::RotateItem() {
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Started Rotating Item."));
 	FItemGridSize retVal = GetSize().GetFlipped();
 	if (HasAuthority()) {
+		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Initial call was on server."));
 		bItemRotated = !bItemRotated;
 		if (DynamicImage) {
 			DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
 		}
 	}
 	else {
+		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Initial call was NOT on server."));
 		RotateItemOnServer();
 	}
 	return retVal;
@@ -100,10 +103,13 @@ void UItemDataComponent::ReplicateDataAssetInfo_Implementation(UInventoryItemDat
 	}
 }
 bool UItemDataComponent::HasAuthority() const {
-	if (!GetOwner()->GetIsReplicated()) {
+	if (!IsValid(GetOwner()->GetOwner())) {
+		return false;
+	}
+	if (!GetOwner()->GetOwner()->GetIsReplicated()) {
 		return true;
 	}
-	return GetOwner()->GetLocalRole() == ROLE_Authority;
+	return GetOwner()->GetOwner()->GetLocalRole() == ROLE_Authority;
 }
 
 void UItemDataComponent::BeginPlay() {
@@ -125,6 +131,7 @@ void UItemDataComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 }
 
 void UItemDataComponent::RotateItemOnServer_Implementation() {
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Initial call was sent to the server."));
 	bItemRotated = !bItemRotated;
 	if (DynamicImage) {
 		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);

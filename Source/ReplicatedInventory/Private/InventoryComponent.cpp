@@ -410,7 +410,8 @@ bool UInventoryComponent::RotateSlot(int index) {
 			ReplicateTakenSlotChange_Multi(i, true);
 		}
 	}
-	UpdatedIndex_Multi(index, ItemSlots[index], EInventorySlotState::Used);
+	OnInventorySlotRotated.Broadcast(index, oldSize.GetFlipped());
+	ReplicateSlotRotated_Multi(index, oldSize.GetFlipped());
 	return true;
 }
 
@@ -612,11 +613,12 @@ void UInventoryComponent::RotateItemOnServer_Implementation(int index) {
 			ReplicateTakenSlotChange_Multi(i, true);
 		}
 	}
-	if (GetWorld()) {
-
-		FTimerDelegate timerDelegate;
-		timerDelegate.BindUFunction(this, FName("UpdatedIndex_Multi"), index, ItemSlots[index], EInventorySlotState::Used);
-		GetWorld()->GetTimerManager().SetTimerForNextTick(timerDelegate);
-	}
+	OnInventorySlotRotated.Broadcast(index, oldSize.GetFlipped());
+	ReplicateSlotRotated_Multi(index, oldSize.GetFlipped());
 }
 
+void UInventoryComponent::ReplicateSlotRotated_Multi_Implementation(int index, FItemGridSize newSize) {
+	if (!HasAuthority()) {
+		OnInventorySlotRotated.Broadcast(index, newSize);
+	}
+}

@@ -72,7 +72,7 @@ public:
 	int GetQuantityMaxAddend() const { return FMath::Clamp(MaxQuantity - Quantity, 0, MaxQuantity); }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	bool MatchesItem(FName otherItemName) const { return otherItemName == GetItemName(); }
+	bool MatchesItem(FName otherItemName) const { return otherItemName == Name; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	FItemGridSize RotateItem();
@@ -129,5 +129,7 @@ private:
 
 	UPROPERTY();
 	TObjectPtr<UMaterialInstanceDynamic> DynamicImage;
+
+
 	
 };

@@ -13,6 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGeneralInventoryChangeSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySizeChangeSignature, int, delta);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotChangeSignature, int, slot, UItemDataComponent*, newItem, EInventorySlotState, newSlotState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBroadcastInventorySignature, UInventoryComponent*, inventory);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventorySlotRotatedSignature, int, slot, FItemGridSize, newSize);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable, BlueprintType )
 class REPLICATEDINVENTORY_API UInventoryComponent : public UActorComponent
@@ -39,6 +40,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
 	FOnInventorySlotChangeSignature OnInventorySlotChange;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory")
+	FOnInventorySlotRotatedSignature OnInventorySlotRotated;
 
 
 protected:
@@ -99,13 +103,13 @@ public:
 	/*
 	* Increases the inventory size.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category = "Inventory")
 	void IncreaseInventorySize(int increaseAmount);
 	/*
 	* Increases the inventory's width. Keep in mind this will effectively increase the size of the inventory by the truncated int of (Size/OriginalWidth).
 	* This will not extend the final row.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category = "Inventory")
 	bool IncreaseInventoryWidth(int increaseAmount);
 	/*
 	* Adds an item to the inventory. If any excess exists then the input item will be modified.
@@ -215,6 +219,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void RotateItemOnServer(int index);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void ReplicateSlotRotated_Multi(int index, FItemGridSize newSize);
 
 	/*
 	* The slots of the items stored in this inventory.
