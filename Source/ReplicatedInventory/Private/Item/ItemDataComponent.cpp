@@ -103,7 +103,7 @@ bool UItemDataComponent::HasAuthority() const {
 	if (!GetOwner()->GetIsReplicated()) {
 		return true;
 	}
-	return GetOwner()->HasAuthority();
+	return GetOwner()->GetLocalRole() == ROLE_Authority;
 }
 
 void UItemDataComponent::BeginPlay() {
@@ -129,6 +129,7 @@ void UItemDataComponent::RotateItemOnServer_Implementation() {
 	if (DynamicImage) {
 		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
 	}
+	OnSizeFlipped.Broadcast(GetSize().GetFlipped(), GetSize());
 }
 void UItemDataComponent::SetQuantityOnServer_Implementation(int newQuantity) {
 	int old = Quantity;
@@ -149,4 +150,7 @@ void UItemDataComponent::OnRep_ItemRotated() {
 	if (DynamicImage) {
 		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
 	}
+	FItemGridSize oldSize = GetSize().GetFlipped();
+	FItemGridSize newSize = GetSize();
+	OnSizeFlipped.Broadcast(GetSize().GetFlipped(), GetSize());
 }

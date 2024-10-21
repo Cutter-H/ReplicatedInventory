@@ -71,21 +71,22 @@ TArray<int> UInventoryComponent::GetSlots(int index, FItemGridSize size, bool bI
 	return retVal;
 }
 bool UInventoryComponent::SlotsAreEmpty(TArray<int> indexes) const {
-	if (indexes.Num() <= 0) return false;
-	for (int i : indexes)
-	{
-		if (i > InventorySize || i < 0) return false;
-
-		if (!ItemSlots[i]) return false;
+	if (indexes.Num() <= 0) {
+		return false;
+	}
+	for (int i : indexes) {
+		if (!SlotIsEmpty(i)) {
+			return false;
+		}
 	}
 	return true;
 }
 bool UInventoryComponent::SlotIsEmpty(int index) const {
-	if (index > InventorySize || index < 0) {
+	if (!IsValidIndex(index) || TakenSlots.Contains(index)) {
 		return false;
 	}
 
-	return IsValid(ItemSlots[index]) || TakenSlots.Contains(index);
+	return !IsValid(ItemSlots[index]);
 }
 int UInventoryComponent::Index2DToInt(FInventory2DIndex index2D) const {
 	return index2D.X + (index2D.Y * InventoryWidth);
@@ -270,7 +271,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 						}
 					}
 					else {
-						if (!IsValid(s)) {
+						if (SlotIsEmpty(i)) {
 							if (!newItemSize.IsSingle()) {
 								currentSlots = GetSlots(i, newItemSize, false);
 								bool slotIsAvailable = SlotsAreEmpty(currentSlots);
@@ -540,6 +541,7 @@ AActor* UInventoryComponent::GenerateItemWithData(UInventoryItemData* itemData, 
 void UInventoryComponent::UpdatedIndex_Multi_Implementation(int index, UItemDataComponent* item, EInventorySlotState newSlotState) {
 	if (!HasAuthority()) {
 		OnInventorySlotChange.Broadcast(index, item, newSlotState);
+		
 	}
 }
 void UInventoryComponent::OnRep_ItemSlots(TArray<UItemDataComponent*> oldItemSlots) {
@@ -610,6 +612,11 @@ void UInventoryComponent::RotateItemOnServer_Implementation(int index) {
 			ReplicateTakenSlotChange_Multi(i, true);
 		}
 	}
-	UpdatedIndex_Multi(index, ItemSlots[index], EInventorySlotState::Used);
+	if (GetWorld()) {
+
+		FTimerDelegate timerDelegate;
+		timerDelegate.BindUFunction(this, FName("UpdatedIndex_Multi"), index, ItemSlots[index], EInventorySlotState::Used);
+		GetWorld()->GetTimerManager().SetTimerForNextTick(timerDelegate);
+	}
 }
 

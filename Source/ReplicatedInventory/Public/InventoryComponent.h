@@ -141,7 +141,7 @@ public:
 	UItemDataComponent* GetItem(int index) const { return ItemSlots.IsValidIndex(index) ? ItemSlots[index] : NULL; }
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool IsSlotTaken(int index) { return TakenSlots.Contains(index); }
+	bool IsSlotTaken(int index) const { return TakenSlots.Contains(index); }
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool CanRotateSlot(int index) const;

@@ -40,7 +40,7 @@ public:
 	 * This will be toggled between 0 and 1 when rotating the item.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
-	FName ImageRotateScalarName = FName("Rotate");
+	FName ImageRotateScalarName = FName("IconRotated");
 	/*
 	 * The image shown in the inventory grid.	
 	 */
