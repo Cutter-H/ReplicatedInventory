@@ -125,6 +125,9 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 	if (!IsValid(itemData)) {
 		return -1;
 	}
+	if (ItemSlots.Contains(itemData)) { // Avoid duplicates.
+		return -1;
+	}
 	FItemGridSize itemSize = itemData->GetSize();
 	int itemQuantity = itemData->GetQuantity();
 
@@ -162,7 +165,7 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 				freeIndex = i;
 
 			// Found a similar existing item to iterate.
-			if (IsValid(item) && s->MatchesItem(itemData->GetItemName()) && itemQuantity > 0) {
+			if (IsValid(item) && IsValid(s) && s->MatchesItem(itemData->GetItemName()) && itemQuantity > 0) {
 				lastIndex = i;
 				itemData->SetQuantity(s->AddQuantity(itemData->GetQuantity()));
 			}
@@ -187,7 +190,10 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 	return -1;
 }
 int UInventoryComponent::AddItemComponentToInventory(UItemDataComponent* itemData, int desiredIndex) {
-	return AddItemToInventory(itemData->GetOwner(), desiredIndex);
+	if (IsValid(itemData)) {
+		return AddItemToInventory(itemData->GetOwner(), desiredIndex);
+	}
+	return -1;
 }
 int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item, FItemDataAmount& modifiedItemData, int desiredIndex)
 {

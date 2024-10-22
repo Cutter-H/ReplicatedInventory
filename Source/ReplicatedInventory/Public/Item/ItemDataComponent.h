@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSizeFlippedSignature, FItemGridSiz
 
 class UInventoryItemData;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class REPLICATEDINVENTORY_API UItemDataComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -86,6 +86,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Item", BlueprintReadOnly, meta = (ExposeOnSpawn = "true"))
 	TObjectPtr<UInventoryItemData> ItemDataAsset;
 
+	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category = "Item")
+	void UpdatePrimitiveProfile(bool overrideOriginals = false);
+
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Item")
+	void SetItemVisibility(EItemVisibility newVisibility);
+
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	TArray<TSubclassOf<UObject>> GetActivationOptions() const { return ActivationOptions; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
@@ -102,6 +111,15 @@ private:
 
 	UFUNCTION()
 	void OnRep_ItemRotated();
+
+	UFUNCTION()
+	int ProfileContainsComp(UPrimitiveComponent* comp) const {
+		for (int i = 0; i < PrimitiveProfile.Num(); i++) {
+			if (PrimitiveProfile[i].Component == comp) {
+				return i;
+			}
+		} return -1;
+	}
 
 	UPROPERTY(EditAnywhere, Category = "Item", Replicated)
 	int Quantity = 1;
@@ -129,7 +147,11 @@ private:
 
 	UPROPERTY();
 	TObjectPtr<UMaterialInstanceDynamic> DynamicImage;
+	
+	UPROPERTY(Replicated)
+	TArray<FItemComponentProfile> PrimitiveProfile;
 
-
+	UPROPERTY()
+	TArray<TSubclassOf<UObject>> ActivationOptions;
 	
 };

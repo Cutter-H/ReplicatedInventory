@@ -54,7 +54,7 @@ public:
 	TObjectPtr<UPrimitiveComponent> Component;
 	bool Visibility;
 	bool Simulating;
-	FCollisionResponseContainer CollisionResponses;
+	//FCollisionResponseContainer CollisionResponses;
 	ECollisionEnabled::Type CollisionEnabled;
 
 	FItemComponentProfile() {
@@ -64,14 +64,12 @@ public:
 		if (IsValid(newComp)) {
 			Component = newComp;
 			Visibility = newComp->GetVisibleFlag();
-			Simulating = newComp->IsSimulatingPhysics();
-			CollisionResponses = newComp->GetCollisionResponseToChannels();
-			CollisionEnabled = newComp->GetCollisionEnabled();
 		}
 	}
 
 	bool operator == (UPrimitiveComponent* otherComponent) {
-		return Component == otherComponent;
+		bool val = (Component.Get() == otherComponent);
+		return val;
 	}
 };
 
@@ -112,4 +110,11 @@ public:
 	int Quantity = 1;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Item")
 	UInventoryItemData* DataAsset;
+};
+
+UENUM(BlueprintType)
+enum EItemVisibility {
+	BySavedProfile,
+	NoVisibility,
+	VisibleInRenderTargetsOnly
 };

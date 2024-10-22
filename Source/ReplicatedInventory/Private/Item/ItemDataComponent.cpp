@@ -3,6 +3,7 @@
 
 #include "Item/ItemDataComponent.h"
 #include "Item/InventoryItemData.h"
+#include "Components/PrimitiveComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
@@ -75,17 +76,14 @@ FText UItemDataComponent::GetGridDisplayText_Implementation() const {
 	return Quantity > 1 ? FText::FromString(FString::FromInt(Quantity)) : FText::FromString("");
 }
 FItemGridSize UItemDataComponent::RotateItem() {
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Started Rotating Item."));
 	FItemGridSize retVal = GetSize().GetFlipped();
 	if (HasAuthority()) {
-		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Initial call was on server."));
 		bItemRotated = !bItemRotated;
 		if (DynamicImage) {
 			DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
 		}
 	}
 	else {
-		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Initial call was NOT on server."));
 		RotateItemOnServer();
 	}
 	return retVal;
@@ -100,6 +98,7 @@ void UItemDataComponent::ReplicateDataAssetInfo_Implementation(UInventoryItemDat
 		Image = ItemDataAsset->Image;
 		ItemRotationScalar = ItemDataAsset->ImageRotateScalarName;
 		DynamicImage = UMaterialInstanceDynamic::Create(Image, this);
+		ActivationOptions = newData->ActivationOptions;
 	}
 }
 bool UItemDataComponent::HasAuthority() const {
@@ -110,6 +109,34 @@ bool UItemDataComponent::HasAuthority() const {
 		return true;
 	}
 	return GetOwner()->GetOwner()->GetLocalRole() == ROLE_Authority;
+}
+void UItemDataComponent::UpdatePrimitiveProfile(bool overrideOriginals) {
+	TArray<UPrimitiveComponent*> comps;
+	GetOwner()->GetComponents<UPrimitiveComponent>(comps);
+	for (int i = 0; i < PrimitiveProfile.Num(); i++) {
+		if (!IsValid(PrimitiveProfile[i].Component)) {
+			PrimitiveProfile.RemoveAt(i);
+		}
+	}
+	for (UPrimitiveComponent* comp : comps) {
+		int foundIndex = ProfileContainsComp(comp);
+		if (foundIndex >= 0 && overrideOriginals) {
+			PrimitiveProfile[foundIndex] = FItemComponentProfile(comp);
+		}
+		else {
+			if (foundIndex < 0) {
+				PrimitiveProfile.Add(FItemComponentProfile(comp));
+			}
+		}
+	}
+}
+void UItemDataComponent::SetItemVisibility(EItemVisibility newVisibility) {
+	for (int i = 0; i < PrimitiveProfile.Num(); i++) {
+		FItemComponentProfile settings = PrimitiveProfile[i];
+		UPrimitiveComponent* comp = settings.Component;
+		comp->SetVisibility(newVisibility != EItemVisibility::NoVisibility ? settings.Visibility : false);
+		comp->SetVisibleInSceneCaptureOnly(newVisibility == EItemVisibility::VisibleInRenderTargetsOnly);
+	}
 }
 
 void UItemDataComponent::BeginPlay() {
@@ -123,15 +150,18 @@ void UItemDataComponent::BeginPlay() {
 		ItemRotationScalar = ItemDataAsset->ImageRotateScalarName;
 		DynamicImage = UMaterialInstanceDynamic::Create(Image, this);
 	}
+	if (HasAuthority()) {
+		UpdatePrimitiveProfile();
+	}
 }
 void UItemDataComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UItemDataComponent, Quantity);
 	DOREPLIFETIME_CONDITION_NOTIFY(UItemDataComponent, bItemRotated, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME(UItemDataComponent, PrimitiveProfile);
 }
 
 void UItemDataComponent::RotateItemOnServer_Implementation() {
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1.f, FColor::Green, FString("Initial call was sent to the server."));
 	bItemRotated = !bItemRotated;
 	if (DynamicImage) {
 		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
