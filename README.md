@@ -1,4 +1,6 @@
-This is a work-in-progress plugin. It is not ready for use and many errors will occur. A previous version is listed in releases, but it requires many additional actors (AInventorySlot) during use. The changes being done currently are removing this requirement.
+The plugin is now in a somewhat functional state, but UI functionality is not complete. The inventory itself has not been completely tested. 
+
+It comes with content for testing purposes. Everything is done in runtime so nothing SHOULD affect any external assets when testing. Although editor assets are not reference, please use with caution if you implement it with such functionality.
 ---
 Prototype video showcasing expected functionality. This is from a previous version of this project that did not support custom functionality (such as showing a replicated firearm's current ammo).
 
