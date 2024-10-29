@@ -56,5 +56,6 @@ public:
 	 * Activation options for the item. This can be anything from widgets or GameplayAbilities, hence the subclass of Object.
 	 * There exists a Getter on the ItemDataComponent class for these.
 	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	TArray<TSubclassOf<UObject>> ActivationOptions;
 };

@@ -90,6 +90,9 @@ FItemGridSize UItemDataComponent::RotateItem() {
 }
 void UItemDataComponent::ReplicateDataAssetInfo_Implementation(UInventoryItemData* newData) {
 	ItemDataAsset = newData;
+	UpdateData();
+}
+void UItemDataComponent::UpdateData() {
 	if (IsValid(ItemDataAsset)) {
 		Name = ItemDataAsset->Name;
 		Description = ItemDataAsset->Description;
@@ -98,7 +101,7 @@ void UItemDataComponent::ReplicateDataAssetInfo_Implementation(UInventoryItemDat
 		Image = ItemDataAsset->Image;
 		ItemRotationScalar = ItemDataAsset->ImageRotateScalarName;
 		DynamicImage = UMaterialInstanceDynamic::Create(Image, this);
-		ActivationOptions = newData->ActivationOptions;
+		ActivationOptions = ItemDataAsset->ActivationOptions;
 	}
 }
 bool UItemDataComponent::HasAuthority() const {
@@ -137,6 +140,10 @@ void UItemDataComponent::SetItemVisibility(EItemVisibility newVisibility) {
 		comp->SetVisibility(newVisibility != EItemVisibility::NoVisibility ? settings.Visibility : false);
 		comp->SetVisibleInSceneCaptureOnly(newVisibility == EItemVisibility::VisibleInRenderTargetsOnly);
 	}
+}
+
+TArray<TSubclassOf<UObject>> UItemDataComponent::GetActivationOptions() const {
+	return IsValid(ItemDataAsset) ? ItemDataAsset->ActivationOptions : TArray<TSubclassOf<UObject>>();
 }
 
 void UItemDataComponent::BeginPlay() {

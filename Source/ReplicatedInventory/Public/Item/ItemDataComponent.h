@@ -81,6 +81,9 @@ public:
 	void ReplicateDataAssetInfo(UInventoryItemData* newData);
 
 	UFUNCTION()
+	void UpdateData();
+
+	UFUNCTION()
 	bool HasAuthority() const;
 
 	UPROPERTY(EditAnywhere, Category = "Item", BlueprintReadOnly, meta = (ExposeOnSpawn = "true"))
@@ -93,7 +96,7 @@ public:
 	void SetItemVisibility(EItemVisibility newVisibility);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	TArray<TSubclassOf<UObject>> GetActivationOptions() const { return ActivationOptions; }
+	TArray<TSubclassOf<UObject>> GetActivationOptions() const;
 
 protected:
 	virtual void BeginPlay() override;

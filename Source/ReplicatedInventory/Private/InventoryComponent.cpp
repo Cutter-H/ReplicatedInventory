@@ -526,6 +526,7 @@ AActor* UInventoryComponent::GenerateItemWithData(UInventoryItemData* itemData, 
 		UItemDataComponent* itemComp = Cast<UItemDataComponent>(newItem->AddComponentByClass(UItemDataComponent::StaticClass(), false, FTransform(), true));
 		if (IsValid(itemComp)) {
 			itemComp->ItemDataAsset = itemData;
+			itemComp->UpdateData();
 			newItem->FinishAddComponent(itemComp, true, FTransform());
 			
 			itemComp->RegisterComponent();
