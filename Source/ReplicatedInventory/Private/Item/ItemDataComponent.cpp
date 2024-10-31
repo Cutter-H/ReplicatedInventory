@@ -78,10 +78,15 @@ FText UItemDataComponent::GetGridDisplayText_Implementation() const {
 FItemGridSize UItemDataComponent::RotateItem() {
 	FItemGridSize retVal = GetSize().GetFlipped();
 	if (HasAuthority()) {
-		bItemRotated = !bItemRotated;
-		if (DynamicImage) {
-			DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
+		if (!GetOwner()->GetIsReplicated()) {
+			bItemRotated = !bItemRotated;
+			if (DynamicImage) {
+				DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
+			}
+			OnSizeFlipped.Broadcast(GetSize().GetFlipped(), GetSize());
+			return retVal;
 		}
+		ReplicateItemRotation(!bItemRotated, retVal);
 	}
 	else {
 		RotateItemOnServer();
@@ -164,16 +169,19 @@ void UItemDataComponent::BeginPlay() {
 void UItemDataComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UItemDataComponent, Quantity);
-	DOREPLIFETIME_CONDITION_NOTIFY(UItemDataComponent, bItemRotated, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME(UItemDataComponent, bItemRotated);
 	DOREPLIFETIME(UItemDataComponent, PrimitiveProfile);
 }
 
 void UItemDataComponent::RotateItemOnServer_Implementation() {
-	bItemRotated = !bItemRotated;
+	ReplicateItemRotation(!bItemRotated, GetSize().GetFlipped());
+}
+void UItemDataComponent::ReplicateItemRotation_Implementation(bool newRotated, FItemGridSize newSize) {
+	bItemRotated = newRotated;
 	if (DynamicImage) {
-		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
+		DynamicImage->SetScalarParameterValue(ItemRotationScalar, newRotated ? 1.f : 0.f);
 	}
-	OnSizeFlipped.Broadcast(GetSize().GetFlipped(), GetSize());
+	OnSizeFlipped.Broadcast(newSize.GetFlipped(), newSize);
 }
 void UItemDataComponent::SetQuantityOnServer_Implementation(int newQuantity) {
 	int old = Quantity;
@@ -189,12 +197,4 @@ void UItemDataComponent::BroadcastQuantityUpdate_Implementation(int oldQuantity,
 		OnQuantityFill.Broadcast();
 	}
 	OnGridTextChange.Broadcast(GetGridDisplayText());
-}
-void UItemDataComponent::OnRep_ItemRotated() {
-	if (DynamicImage) {
-		DynamicImage->SetScalarParameterValue(ItemRotationScalar, bItemRotated ? 1.f : 0.f);
-	}
-	FItemGridSize oldSize = GetSize().GetFlipped();
-	FItemGridSize newSize = GetSize();
-	OnSizeFlipped.Broadcast(GetSize().GetFlipped(), GetSize());
 }

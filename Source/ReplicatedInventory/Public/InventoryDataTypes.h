@@ -40,7 +40,7 @@ public:
 
 	FItemGridSize GetFlipped() const { return FItemGridSize(Height, Width); }
 	bool IsSingle() const { return ((Width == 1) && (Height == 1)); }
-
+	bool IsSquare() const {	return (Width == Height); }
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Size")
 	int Width = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Size")

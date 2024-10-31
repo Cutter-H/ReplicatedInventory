@@ -403,19 +403,40 @@ bool UInventoryComponent::RotateSlot(int index) {
 		return true;
 	}
 	FItemGridSize oldSize = ItemSlots[index]->GetSize();
-	ItemSlots[index]->RotateItem();
-	if (!oldSize.IsSingle()) {
-		TArray<int> slots = GetSlots(index, oldSize);
-		for (int i : slots) {
-			TakenSlots.Remove(i);
-			ReplicateTakenSlotChange_Multi(i, false);
+	if (!oldSize.IsSingle() && !oldSize.IsSquare()) {
+		TArray<int> slots;
+		if (oldSize.Width > oldSize.Height) {
+			slots = GetSlots(index + oldSize.Height, FItemGridSize(oldSize.Width - oldSize.Height, oldSize.Height), true);
 		}
-		slots = GetSlots(index, oldSize.GetFlipped());
+		else {
+			slots = GetSlots(index + oldSize.Width, FItemGridSize(oldSize.Height - oldSize.Width, oldSize.Width), true);
+		}
 		for (int i : slots) {
-			TakenSlots.Add(i);
-			ReplicateTakenSlotChange_Multi(i, true);
+			if (oldSize.Width > oldSize.Height) {
+				TakenSlots.Remove(i);
+			}
+			else {
+				TakenSlots.Add(i);
+			}
+			ReplicateTakenSlotChange_Multi(i, (oldSize.Width < oldSize.Height));
+		}
+		if (oldSize.Width > oldSize.Height) {
+			slots = GetSlots(index + (InventoryWidth * (oldSize.Width - oldSize.Height)), FItemGridSize(oldSize.Height, oldSize.Width - oldSize.Height), true);
+		}
+		else {
+			slots = GetSlots(index + (InventoryWidth * (oldSize.Height- oldSize.Width)), FItemGridSize(oldSize.Width, oldSize.Height- oldSize.Width), true);
+		}
+		for (int i : slots) {
+			if (oldSize.Width > oldSize.Height) {
+				TakenSlots.Add(i);
+			}
+			else {
+				TakenSlots.Remove(i);
+			}
+			ReplicateTakenSlotChange_Multi(i, (oldSize.Width > oldSize.Height));
 		}
 	}
+	ItemSlots[index]->RotateItem();
 	OnInventorySlotRotated.Broadcast(index, oldSize.GetFlipped());
 	ReplicateSlotRotated_Multi(index, oldSize.GetFlipped());
 	return true;
@@ -607,19 +628,40 @@ void UInventoryComponent::RequestFinishGeneratingInventory_Server_Implementation
 }
 void UInventoryComponent::RotateItemOnServer_Implementation(int index) {
 	FItemGridSize oldSize = ItemSlots[index]->GetSize();
-	ItemSlots[index]->RotateItem();
-	if (!oldSize.IsSingle()) {
-		TArray<int> slots = GetSlots(index, oldSize);
-		for (int i : slots) {
-			TakenSlots.Remove(i);
-			ReplicateTakenSlotChange_Multi(i, false);
+	if (!oldSize.IsSingle() && !oldSize.IsSquare()) {
+		TArray<int> slots;
+		if (oldSize.Width > oldSize.Height) {
+			slots = GetSlots(index + oldSize.Height, FItemGridSize(oldSize.Width - oldSize.Height, oldSize.Height), true);
 		}
-		slots = GetSlots(index, oldSize.GetFlipped());
+		else {
+			slots = GetSlots(index + oldSize.Width, FItemGridSize(oldSize.Height - oldSize.Width, oldSize.Width), true);
+		}
 		for (int i : slots) {
-			TakenSlots.Add(i);
-			ReplicateTakenSlotChange_Multi(i, true);
+			if (oldSize.Width > oldSize.Height) {
+				TakenSlots.Remove(i);
+			}
+			else {
+				TakenSlots.Add(i);
+			}
+			ReplicateTakenSlotChange_Multi(i, (oldSize.Width < oldSize.Height));
+		}
+		if (oldSize.Width > oldSize.Height) {
+			slots = GetSlots(index + (InventoryWidth * (oldSize.Width - oldSize.Height)), FItemGridSize(oldSize.Height, oldSize.Width - oldSize.Height), true);
+		}
+		else {
+			slots = GetSlots(index + (InventoryWidth * (oldSize.Height - oldSize.Width)), FItemGridSize(oldSize.Width, oldSize.Height - oldSize.Width), true);
+		}
+		for (int i : slots) {
+			if (oldSize.Width > oldSize.Height) {
+				TakenSlots.Add(i);
+			}
+			else {
+				TakenSlots.Remove(i);
+			}
+			ReplicateTakenSlotChange_Multi(i, (oldSize.Width > oldSize.Height));
 		}
 	}
+	ItemSlots[index]->RotateItem(); 
 	OnInventorySlotRotated.Broadcast(index, oldSize.GetFlipped());
 	ReplicateSlotRotated_Multi(index, oldSize.GetFlipped());
 }

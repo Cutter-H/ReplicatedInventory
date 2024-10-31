@@ -106,14 +106,14 @@ private:
 	UFUNCTION(Server, Reliable)
 	void RotateItemOnServer();
 
+	UFUNCTION(NetMulticast, Reliable)
+	void ReplicateItemRotation(bool newRotated, FItemGridSize newSize);
+
 	UFUNCTION(Server, Reliable)
 	void SetQuantityOnServer(int newQuantity);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void BroadcastQuantityUpdate(int oldQuantity, int newQuantity);
-
-	UFUNCTION()
-	void OnRep_ItemRotated();
 
 	UFUNCTION()
 	int ProfileContainsComp(UPrimitiveComponent* comp) const {
@@ -145,7 +145,7 @@ private:
 	UPROPERTY()
 	FName ItemRotationScalar;
 
-	UPROPERTY(Replicated, ReplicatedUsing="OnRep_ItemRotated")
+	UPROPERTY(Replicated)
 	bool bItemRotated = false;
 
 	UPROPERTY();
