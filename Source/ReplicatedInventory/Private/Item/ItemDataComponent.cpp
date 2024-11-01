@@ -14,28 +14,26 @@ UItemDataComponent::UItemDataComponent()
 
 }
 bool UItemDataComponent::SetQuantity(int newAmount) {
-	if (newAmount == Quantity || !IsValid(GetOwner())) {
+	int correctedNewAmount = FMath::Clamp(newAmount, 0, MaxQuantity);
+	if (correctedNewAmount == Quantity || !IsValid(GetOwner())) {
 		return false;
 	}
-	if (GetOwner()->HasAuthority() || !GetOwner()->GetIsReplicated()) {
+	if (HasAuthority()) {
 		int old = Quantity;
-		Quantity = newAmount;
-		if (GetOwner()->GetIsReplicated()) {
-			BroadcastQuantityUpdate(old, newAmount);
+		Quantity = correctedNewAmount;
+				
+		OnQuantityChange.Broadcast(old, correctedNewAmount);
+		if (correctedNewAmount <= 0) {
+			OnQuantityDeplete.Broadcast();
 		}
-		else {
-			OnQuantityChange.Broadcast(old, newAmount);
-			if (newAmount == 0) {
-				OnQuantityDeplete.Broadcast();
-			}
-			if (newAmount == MaxQuantity) {
-				OnQuantityFill.Broadcast();
-			}
-			OnGridTextChange.Broadcast(GetGridDisplayText());
+		if (correctedNewAmount >= MaxQuantity) {
+			OnQuantityFill.Broadcast();
 		}
+		OnGridTextChange.Broadcast(GetGridDisplayText());
+		
 	}
 	else {
-		SetQuantityOnServer(newAmount);
+		SetQuantityOnServer(correctedNewAmount);
 	}
 	return true;
 }
@@ -168,7 +166,7 @@ void UItemDataComponent::BeginPlay() {
 }
 void UItemDataComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UItemDataComponent, Quantity);
+	DOREPLIFETIME_CONDITION_NOTIFY(UItemDataComponent, Quantity, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME(UItemDataComponent, bItemRotated);
 	DOREPLIFETIME(UItemDataComponent, PrimitiveProfile);
 }
@@ -186,7 +184,17 @@ void UItemDataComponent::ReplicateItemRotation_Implementation(bool newRotated, F
 void UItemDataComponent::SetQuantityOnServer_Implementation(int newQuantity) {
 	int old = Quantity;
 	Quantity = newQuantity;
-	BroadcastQuantityUpdate(old, newQuantity);
+	OnQuantityChange.Broadcast(old, newQuantity);
+	if (Quantity <= 0) {
+		OnQuantityDeplete.Broadcast();
+	}
+	if (Quantity >= MaxQuantity) {
+		OnQuantityFill.Broadcast();
+	}
+	OnGridTextChange.Broadcast(GetGridDisplayText());
+	if (newQuantity <= 0) {
+		GetOwner()->Destroy(true);
+	}
 }
 void UItemDataComponent::BroadcastQuantityUpdate_Implementation(int oldQuantity, int newQuantity) {
 	OnQuantityChange.Broadcast(oldQuantity, newQuantity);
@@ -194,6 +202,16 @@ void UItemDataComponent::BroadcastQuantityUpdate_Implementation(int oldQuantity,
 		OnQuantityDeplete.Broadcast();
 	}
 	if (newQuantity == MaxQuantity) {
+		OnQuantityFill.Broadcast();
+	}
+	OnGridTextChange.Broadcast(GetGridDisplayText());
+}
+void UItemDataComponent::OnRep_Quantity(int oldQuantity) {
+	OnQuantityChange.Broadcast(oldQuantity, Quantity);
+	if (Quantity <= 0) {
+		OnQuantityDeplete.Broadcast();
+	}
+	if (Quantity >= MaxQuantity) {
 		OnQuantityFill.Broadcast();
 	}
 	OnGridTextChange.Broadcast(GetGridDisplayText());

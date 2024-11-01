@@ -165,18 +165,21 @@ int UInventoryComponent::AddItemToInventory(AActor* item, int desiredIndex) {
 				freeIndex = i;
 
 			// Found a similar existing item to iterate.
-			if (IsValid(item) && IsValid(s) && s->MatchesItem(itemData->GetItemName()) && itemQuantity > 0) {
+			if (IsValid(itemData) && IsValid(s) && s->MatchesItem(itemData->GetItemName()) && itemQuantity > 0) {
 				lastIndex = i;
-				itemData->SetQuantity(s->AddQuantity(itemData->GetQuantity()));
+				itemQuantity -= s->GetQuantityMaxAddend();
+				s->AddQuantity(itemData->GetQuantity());
+				itemData->SetQuantity(itemQuantity);
 			}
 
 			// Exit the loop if the we found a empty slot or ran out iterating existing items. No reason to finish the array if we're done.
-			if (freeIndex >= 0 && (IsValid(item) || itemQuantity <= 0)) {
+			if (freeIndex >= 0 && (IsValid(itemData) || itemQuantity <= 0)) {
 				break;
 			}
 		}
 		// We have exhausted the added item on existing items.
-		if (!IsValid(item) || itemQuantity <= 0) {
+		if (!IsValid(itemData) || itemQuantity <= 0) {
+			itemData->GetOwner()->Destroy(true);
 			return lastIndex;
 		}
 		// We found a free slot and still have quantity of the item to add, so we add it to the freeIndex found earlier.

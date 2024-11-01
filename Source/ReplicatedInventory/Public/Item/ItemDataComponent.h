@@ -116,6 +116,9 @@ private:
 	void BroadcastQuantityUpdate(int oldQuantity, int newQuantity);
 
 	UFUNCTION()
+	void OnRep_Quantity(int oldQuantity);
+
+	UFUNCTION()
 	int ProfileContainsComp(UPrimitiveComponent* comp) const {
 		for (int i = 0; i < PrimitiveProfile.Num(); i++) {
 			if (PrimitiveProfile[i].Component == comp) {
@@ -124,7 +127,7 @@ private:
 		} return -1;
 	}
 
-	UPROPERTY(EditAnywhere, Category = "Item", Replicated)
+	UPROPERTY(EditAnywhere, Category = "Item", Replicated, ReplicatedUsing = "OnRep_Quantity")
 	int Quantity = 1;
 	
 	UPROPERTY()

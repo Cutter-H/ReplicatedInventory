@@ -118,3 +118,21 @@ enum EItemVisibility {
 	NoVisibility,
 	VisibleInRenderTargetsOnly
 };
+
+USTRUCT(BlueprintType)
+struct FItemCraftingData {
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
+	TArray<FItemDataAmount> RequiredItems;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
+	TObjectPtr<UInventoryItemData> ResultingItem;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
+	int ResultingAmount = 1;
+
+	FItemCraftingData() :
+		RequiredItems(TArray<FItemDataAmount>()),
+		ResultingItem(nullptr),
+		ResultingAmount(1)	
+	{}
+};

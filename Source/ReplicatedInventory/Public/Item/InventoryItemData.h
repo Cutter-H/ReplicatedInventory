@@ -15,6 +15,7 @@ class REPLICATEDINVENTORY_API UInventoryItemData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 public:
+
 	/*
 	 * Unique Name of the item. This will be used to check if items match.
 	 */
@@ -49,6 +50,7 @@ public:
 	/* 
 	 * A reference to the actor normally used to physically portray this item. If an actor needs to be spawned (such as at a vendor) it will check this.
 	 * (NEEDS to be set.)
+	 * If the actor does not have a ItemData component by default a generic one will be given.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
 	TSubclassOf<AActor> ItemClass;
@@ -56,6 +58,11 @@ public:
 	 * Activation options for the item. This can be anything from widgets or GameplayAbilities, hence the subclass of Object.
 	 * There exists a Getter on the ItemDataComponent class for these.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data|Activation")
 	TArray<TSubclassOf<UObject>> ActivationOptions;
+	/*
+	 * The array 
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data|Crafting", meta = (TitleProperty = "ResultingItem"))
+	TArray<FItemCraftingData> CraftingOptions;
 };

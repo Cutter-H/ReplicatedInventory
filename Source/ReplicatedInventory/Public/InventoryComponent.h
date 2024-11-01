@@ -153,6 +153,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RotateSlot(int index);
 
+	//UFUNCTION(Server, Reliable)
+	//void DestroyLeftOverItem(UItemDataComponent* itemData);
+
 private:
 	/*
 	 * Sets the item at the given index. More than just assigning needs to be done.
