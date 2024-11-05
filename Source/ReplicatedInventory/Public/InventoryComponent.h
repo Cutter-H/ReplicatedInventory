@@ -131,7 +131,7 @@ public:
 	* Removes and destroys the item at the given index.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
-	void DestroyItem(int index = -1);
+	void DestroyItemAtIndex(int index = -1);
 	/*
 	* Removes the item from the index and returns it.
 	*/
@@ -153,8 +153,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RotateSlot(int index);
 
-	//UFUNCTION(Server, Reliable)
-	//void DestroyLeftOverItem(UItemDataComponent* itemData);
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool HasRoomForItem(UItemDataComponent* item, int numberOfItems = 1, int desiredIndex = -1) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	int GetNumOfItem(FName itemName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Crafting")
+	TArray<FItemCraftingData> GetCraftableOptions(int index) const;
+
+	//UFUNCTION(BlueprintCallable, Category = "Inventory|Crafting")
+	//bool CraftItem(int index, FItemCraftingData craftingData);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Item")
+	void DestroyNumOfItem(FName itemName, int numberToDestroy, int startingIndex = -1);
 
 private:
 	/*
@@ -165,7 +177,7 @@ private:
 	UFUNCTION()
 	void SetItem(int index, UItemDataComponent* item);
 	/*
-	* Utility function for internal use. This behaves similarly to AActor's HasAuthority() function. 
+	* Utility function for internal use. This behaves similarly to AActor's HasAuthority() function, but also returns true if the owning actor is not replicated.. 
 	*/
 	UFUNCTION()
 	bool HasAuthority() const;

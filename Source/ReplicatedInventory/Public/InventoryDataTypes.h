@@ -124,15 +124,29 @@ struct FItemCraftingData {
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
+	FName CraftingName = "CraftedItem";
+	/*
+	 * The amount of this item that is required for this craft.
+	 */ 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
+	int SelfRequiredAmount = 1;
+	/*
+	 * Amounts of other items required for this craft.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
 	TArray<FItemDataAmount> RequiredItems;
+	/*
+	 * The resulting item of this craft and its resulting quantity.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
-	TObjectPtr<UInventoryItemData> ResultingItem;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Crafting")
-	int ResultingAmount = 1;
+	FItemDataAmount ResultingItem;
 
-	FItemCraftingData() :
-		RequiredItems(TArray<FItemDataAmount>()),
-		ResultingItem(nullptr),
-		ResultingAmount(1)	
+	FItemCraftingData() 	
 	{}
+
+	bool operator == (const FItemCraftingData& otherCraftingData) const {
+		return otherCraftingData.CraftingName == CraftingName;
+	}
+
+	
 };

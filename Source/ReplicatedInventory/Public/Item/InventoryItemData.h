@@ -63,6 +63,6 @@ public:
 	/*
 	 * The array 
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data|Crafting", meta = (TitleProperty = "ResultingItem"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data|Crafting", meta = (TitleProperty = "CraftingName"))
 	TArray<FItemCraftingData> CraftingOptions;
 };

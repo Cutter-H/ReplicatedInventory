@@ -335,7 +335,7 @@ int UInventoryComponent::AddItemToInventoryUsingData(const FItemDataAmount& item
 	UE_LOG(LogInventory, Warning, TEXT("The item could not be added to the inventory."));
 	return -1;
 }/**/
-void UInventoryComponent::DestroyItem(int index) {
+void UInventoryComponent::DestroyItemAtIndex(int index) {
 	if (!ItemSlots.IsValidIndex(index)) {
 		return;
 	}
@@ -444,6 +444,107 @@ bool UInventoryComponent::RotateSlot(int index) {
 	ReplicateSlotRotated_Multi(index, oldSize.GetFlipped());
 	return true;
 }
+bool UInventoryComponent::HasRoomForItem(UItemDataComponent* item, int numberOfItems, int desiredIndex) const {	
+
+	int existingSlotsMissing = 0;
+	if (desiredIndex >= 0) {
+		if (!IsValidIndex(desiredIndex)) {
+			return false;
+		}
+		if (SlotsAreEmpty(GetSlots(desiredIndex, item->GetSize(), true))) {
+			return true;
+		}
+		else {
+			if (ItemSlots[desiredIndex]->MatchesItem(item->GetItemName())) {
+				return ItemSlots[desiredIndex]->GetQuantityMaxAddend() <= numberOfItems;
+			}
+		}
+		return false;
+	}
+	for (int i = 0; i < InventorySize; i++) {
+		if (SlotIsEmpty(i)) {
+			if (SlotsAreEmpty(GetSlots(i, item->GetSize(), true))) {
+				return true;
+			}
+		}
+		else {
+			if (ItemSlots[desiredIndex]->MatchesItem(item->GetItemName())) {
+				existingSlotsMissing += ItemSlots[desiredIndex]->GetQuantityMaxAddend();
+			}
+		}
+	}
+	
+	return (existingSlotsMissing >= numberOfItems);
+}
+int UInventoryComponent::GetNumOfItem(FName itemName) const {
+	int retVal = 0;
+	for (UItemDataComponent* item : ItemSlots) {
+		if (item->MatchesItem(itemName)) {
+			retVal += item->GetQuantity();
+		}
+	}
+	return retVal;
+}
+TArray<FItemCraftingData> UInventoryComponent::GetCraftableOptions(int index) const {
+	if (!IsValidIndex(index)) {
+		return TArray<FItemCraftingData>();
+	}
+	UItemDataComponent* item = ItemSlots[index];
+	if (!IsValid(item)) {
+		return TArray<FItemCraftingData>();
+	}
+	TArray<int> ignoredSlots = GetSlots(index, item->GetSize());
+	TArray<FItemCraftingData> retVal = item->GetCraftingOptions();
+	for (int i = retVal.Num() - 1; i >= 0; i--) {
+		bool bRemove = false;
+		for (FItemDataAmount requiredItem : retVal[i].RequiredItems) {
+			if (!GetNumOfItem(requiredItem.DataAsset->Name)) {	
+				bRemove = true;
+				break;
+			}
+		}
+		if (!bRemove) {
+			UInventoryItemData* result = retVal[i].ResultingItem.DataAsset;
+			FItemGridSize resultSize = result->Size;
+			TArray<int> checkSlots = GetSlots(index, resultSize);
+			for (int slotNum : ignoredSlots) {
+				checkSlots.Remove(slotNum);
+			}
+			checkSlots.Shrink();
+			if (!SlotsAreEmpty(checkSlots)) {
+				bRemove = true;
+			}
+		}
+		if (bRemove) {
+			bRemove = false;
+			retVal.RemoveAt(i);
+		}
+	}
+	return retVal;
+}/*/
+bool UInventoryComponent::CraftItem(int index, FItemCraftingData craftingData) {
+	int craftOptionIndex = -1; GetCraftableOptions(index).Find(craftingData, craftOptionIndex);
+	if (craftOptionIndex < 0) {
+		return false;
+	}
+	UItemDataComponent* originalCraftingItem = ItemSlots[index];
+	for(craftingData.RequiredItems)
+	craftingData.;
+	return true;
+}/**/
+void UInventoryComponent::DestroyNumOfItem(FName itemName, int numberToDestroy, int startingIndex) {
+	int numLeftToDestroy = numberToDestroy;
+	int current = IsValidIndex(startingIndex) ? startingIndex : 0;
+	UItemDataComponent* currentItem;
+	for (int i = 0; i < InventorySize && numLeftToDestroy > 0; i++) {
+		currentItem = ItemSlots[(i + current) % InventorySize];
+		if (IsValid(currentItem)) {
+			if (currentItem->MatchesItem(itemName)) {
+				numLeftToDestroy = currentItem->RemoveQuantity(numLeftToDestroy);				
+			}
+		}
+	}
+}
 
 
 void UInventoryComponent::SetItemOnServer_Implementation(int index, UItemDataComponent* item) {
@@ -547,25 +648,35 @@ AActor* UInventoryComponent::GenerateItemWithData(UInventoryItemData* itemData, 
 	AActor* newItem = GetWorld()->SpawnActorDeferred<AActor>(itemData->ItemClass, FTransform(), GetOwner(), GetOwner()->GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	if (IsValid(newItem)) {
 		newItem->SetReplicates(true);
-		UItemDataComponent* itemComp = Cast<UItemDataComponent>(newItem->AddComponentByClass(UItemDataComponent::StaticClass(), false, FTransform(), true));
-		if (IsValid(itemComp)) {
-			itemComp->ItemDataAsset = itemData;
-			itemComp->UpdateData();
-			newItem->FinishAddComponent(itemComp, true, FTransform());
-			
-			itemComp->RegisterComponent();
-			newItem->FinishSpawning(FTransform());
+		UItemDataComponent* itemComp = newItem->GetComponentByClass<UItemDataComponent>();
+		if (!IsValid(itemComp)) {
+			itemComp = Cast<UItemDataComponent>(newItem->AddComponentByClass(UItemDataComponent::StaticClass(), false, FTransform(), true));
+			if (IsValid(itemComp)) {
+				itemComp->SetItemDataAsset(itemData);
+				
+				newItem->FinishAddComponent(itemComp, true, FTransform());
 
+				itemComp->RegisterComponent();
+				newItem->FinishSpawning(FTransform());
+
+				itemComp->ReplicateDataAssetInfo(itemData);
+				itemComp->SetQuantity(quantity);
+				UE_LOG(LogInventory, Log, TEXT("Spawned the item %s"), *itemData->Name.ToString());
+				return newItem;
+			}
+			else {
+				itemComp->DestroyComponent();
+				newItem->Destroy();
+				return nullptr;
+			}
+		}
+		else {
+			itemComp->ItemDataAsset = itemData;
 			itemComp->ReplicateDataAssetInfo(itemData);
-			itemComp->SetQuantity(quantity);
+			itemComp->SetQuantity(quantity);			
 			UE_LOG(LogInventory, Log, TEXT("Spawned the item %s"), *itemData->Name.ToString());
 			return newItem;
 		}
-		else {
-			itemComp->DestroyComponent(); 
-			newItem->Destroy();
-		}
-		return nullptr;
 	}
 	newItem->Destroy();
 	return nullptr;

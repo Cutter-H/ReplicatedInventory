@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InventoryDataTypes.h"
+#include "Item/InventoryItemData.h"
 #include "ItemDataComponent.generated.h"
 
 
@@ -51,52 +52,58 @@ public:
 	FText GetGridDisplayText() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	FName GetItemName() const {	return Name; }
+	FName GetItemName() const {	return IsValid(ItemDataAsset) ? ItemDataAsset->Name : FName(""); }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	FName GetDescription() const { return Description; }
+	FName GetDescription() const { return IsValid(ItemDataAsset) ? ItemDataAsset->Description : FName(""); }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	UMaterialInstanceDynamic* GetImage() const { return DynamicImage; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	FItemGridSize GetSize() const {	return bItemRotated ? Size.GetFlipped() : Size; }
+	FItemGridSize GetSize() const {	return IsValid(ItemDataAsset) ? bItemRotated ? ItemDataAsset->Size.GetFlipped() : ItemDataAsset->Size : FItemGridSize(); }
 	
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	int GetQuantity() const { return Quantity; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	int GetMaxQuantity() const { return MaxQuantity; }
+	int GetMaxQuantity() const { return IsValid(ItemDataAsset) ? ItemDataAsset->MaxQuantity : 1; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	int GetQuantityMaxAddend() const { return FMath::Clamp(MaxQuantity - Quantity, 0, MaxQuantity); }
+	int GetQuantityMaxAddend() const { return IsValid(ItemDataAsset) ? FMath::Clamp(ItemDataAsset->MaxQuantity - Quantity, 0, ItemDataAsset->MaxQuantity) : 0; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	bool MatchesItem(FName otherItemName) const { return otherItemName == Name; }
+	bool MatchesItem(FName otherItemName) const { return IsValid(ItemDataAsset) ? otherItemName == ItemDataAsset->Name : false; }
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	FItemGridSize RotateItem();
+
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	FName GetItemRotationScalarName() const { return IsValid(ItemDataAsset) ? ItemDataAsset->ImageRotateScalarName : FName(""); }
 
 	UFUNCTION(NetMulticast, Reliable)
 	void ReplicateDataAssetInfo(UInventoryItemData* newData);
 
 	UFUNCTION()
-	void UpdateData();
-
-	UFUNCTION()
 	bool HasAuthority() const;
-
-	UPROPERTY(EditAnywhere, Category = "Item", BlueprintReadOnly, meta = (ExposeOnSpawn = "true"))
-	TObjectPtr<UInventoryItemData> ItemDataAsset;
 
 	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category = "Item")
 	void UpdatePrimitiveProfile(bool overrideOriginals = false);
 
+	UFUNCTION()
+	void SetItemDataAsset(UInventoryItemData* newItemData);
+
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Item")
 	void SetItemVisibility(EItemVisibility newVisibility);
 
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	TArray<TSubclassOf<UObject>> GetActivationOptions() const;
+	UFUNCTION(BlueprintCallable, Category = "Item|Activation")
+	TArray<TSubclassOf<UObject>> GetActivationOptions() const { return IsValid(ItemDataAsset) ? ItemDataAsset->ActivationOptions : TArray<TSubclassOf<UObject>>(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Item|Crafting")
+	TArray<FItemCraftingData> GetCraftingOptions() const { return IsValid(ItemDataAsset) ? ItemDataAsset->CraftingOptions : TArray<FItemCraftingData>(); }
+
+	UPROPERTY(EditAnywhere, Category = "Item", BlueprintReadOnly, meta = (ExposeOnSpawn = "true"))
+	TObjectPtr<UInventoryItemData> ItemDataAsset;
 
 protected:
 	virtual void BeginPlay() override;
@@ -130,24 +137,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Item", Replicated, ReplicatedUsing = "OnRep_Quantity")
 	int Quantity = 1;
 	
-	UPROPERTY()
-	FName Name;
-
-	UPROPERTY()
-	FName Description;
-
-	UPROPERTY()
-	int MaxQuantity = 1;
-
-	UPROPERTY()
-	FItemGridSize Size = FItemGridSize(1);
+	UPROPERTY(EditAnywhere, Category = "Item")
+	bool bDestroyOnDepletion = true;	
 	
-	UPROPERTY()
-	TObjectPtr<UMaterialInterface> Image;
-
-	UPROPERTY()
-	FName ItemRotationScalar;
-
 	UPROPERTY(Replicated)
 	bool bItemRotated = false;
 
@@ -156,8 +148,4 @@ private:
 	
 	UPROPERTY(Replicated)
 	TArray<FItemComponentProfile> PrimitiveProfile;
-
-	UPROPERTY()
-	TArray<TSubclassOf<UObject>> ActivationOptions;
-	
 };
